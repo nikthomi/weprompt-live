@@ -128,11 +128,11 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
               return (
                 <li key={q.id}>
                   <button type="button" disabled={pending} onClick={() => activate(q)} aria-current={current ? 'step' : undefined}
-                    className={`flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left transition-colors ${current ? 'bg-black text-white' : 'hover:bg-mist'}`}>
-                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-[family-name:var(--font-brand)] font-bold ${current ? 'bg-coral' : 'bg-amber'}`}>{i + 1}</span>
+                    className={`flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left transition-colors ${current ? 'bg-amber' : 'hover:bg-mist'}`}>
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-[family-name:var(--font-brand)] text-[15px] font-semibold ${current ? 'bg-black text-white' : 'bg-mist'}`}>{i + 1}</span>
                     <span className="min-w-0">
                       <span className="block truncate font-[family-name:var(--font-brand)] text-[16px] font-semibold">{q.title}</span>
-                      <span className={`block text-[13px] ${current ? 'text-white/80' : 'text-gray'}`}>{typeLabel(q.type)}</span>
+                      <span className={`block text-[13px] ${current ? 'text-black/75' : 'text-gray'}`}>{typeLabel(q.type)}</span>
                     </span>
                   </button>
                 </li>
@@ -142,22 +142,27 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
         </nav>
 
         <div className="order-1 flex min-w-0 flex-col gap-4 xl:order-2">
-          <div className="panel flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="panel flex flex-col gap-5">
+            <div className="flex flex-wrap items-center gap-3">
               <button type="button" className="wp-btn-quiet" disabled={pending || !isLive || index < 0} onClick={prev} aria-keyshortcuts="ArrowLeft">← Zurück</button>
-              <button type="button" className="wp-btn wp-btn-primary" disabled={pending || !isLive || index >= questions.length - 1} onClick={next} aria-keyshortcuts="ArrowRight">
-                {index < 0 ? 'Erste Frage' : 'Nächste Frage'} →
-              </button>
-              <span className="flex-1" />
-              <Toggle on={snap.votingOpen} disabled={pending || !snap.question} onClick={() => update({ voting_open: !snap.votingOpen })} keys="O">
-                {snap.votingOpen ? 'Abstimmung schliessen' : 'Abstimmung öffnen'}
-              </Toggle>
-              <Toggle on={snap.resultsVisible} disabled={pending || !snap.question} onClick={() => update({ results_visible: !snap.resultsVisible })} keys="E">
-                {snap.resultsVisible ? 'Ergebnisse ausblenden' : 'Ergebnisse zeigen'}
-              </Toggle>
-              <Toggle on={snap.showQr} disabled={pending || !isLive} onClick={() => update({ show_qr: !snap.showQr })} keys="Q">
-                {snap.showQr ? 'QR-Code ausblenden' : 'QR-Code zeigen'}
-              </Toggle>
+              {index < questions.length - 1 ? (
+                <button type="button" className="wp-btn wp-btn-primary" disabled={pending || !isLive} onClick={next} aria-keyshortcuts="ArrowRight">
+                  {index < 0 ? 'Erste Frage' : 'Nächste Frage'} →
+                </button>
+              ) : (
+                <span className="t-small text-gray">Letzte Frage</span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-x-8 gap-y-3 border-t border-mist pt-5">
+              <Switch on={snap.votingOpen} disabled={pending || !snap.question} onClick={() => update({ voting_open: !snap.votingOpen })} keys="O">
+                Abstimmung offen
+              </Switch>
+              <Switch on={snap.resultsVisible} disabled={pending || !snap.question} onClick={() => update({ results_visible: !snap.resultsVisible })} keys="E">
+                Ergebnisse auf dem Beamer
+              </Switch>
+              <Switch on={snap.showQr} disabled={pending || !isLive} onClick={() => update({ show_qr: !snap.showQr })} keys="Q">
+                QR-Code auf dem Beamer
+              </Switch>
             </div>
             {!isLive ? (
               <p className="t-body rounded-[16px] bg-mist px-4 py-3">
@@ -186,10 +191,15 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
   )
 }
 
-function Toggle({ on, children, keys, ...rest }: { on: boolean; children: React.ReactNode; keys: string; disabled?: boolean; onClick: () => void }) {
+/** Ein/Aus-Schalter mit Beschriftung: ruhiger als gefüllte Buttons, Zustand auf einen Blick. */
+function Switch({ on, children, keys, ...rest }: { on: boolean; children: React.ReactNode; keys: string; disabled?: boolean; onClick: () => void }) {
   return (
-    <button type="button" aria-pressed={on} aria-keyshortcuts={keys} className={`wp-btn-quiet ${on ? '!bg-black !text-white' : ''}`} {...rest}>
-      {children}
+    <button type="button" role="switch" aria-checked={on} aria-keyshortcuts={keys}
+      className="group inline-flex items-center gap-3 text-left disabled:cursor-default disabled:opacity-45" {...rest}>
+      <span className={`relative h-[26px] w-[44px] shrink-0 rounded-full transition-colors ${on ? 'bg-black' : 'bg-black/20'}`} aria-hidden>
+        <span className={`absolute top-[3px] h-5 w-5 rounded-full bg-white transition-[left] duration-200 ${on ? 'left-[21px]' : 'left-[3px]'}`} />
+      </span>
+      <span className="font-[family-name:var(--font-brand)] text-[16px] font-semibold">{children}</span>
     </button>
   )
 }

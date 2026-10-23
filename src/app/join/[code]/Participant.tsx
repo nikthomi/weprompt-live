@@ -159,15 +159,15 @@ function AnswerForm({ q, code, pid, onAnswered, onClosed }: {
   }
 
   return (
-    <form onSubmit={e => { e.preventDefault(); send() }} className="flex flex-1 flex-col">
-      <div className="flex-1">
+    <form onSubmit={e => { e.preventDefault(); send() }} className="flex flex-col">
+      <div>
         {q.type === 'choice' || q.type === 'yesno' ? <ChoiceInput q={q} onChange={setValue} /> : null}
         {q.type === 'scale' ? <ScaleInput q={q} onChange={setValue} /> : null}
         {q.type === 'wordcloud' ? <WordsInput q={q} onChange={setValue} /> : null}
         {q.type === 'open' ? <OpenInput q={q} onChange={setValue} /> : null}
       </div>
       {error ? <p role="alert" className="t-body mt-6 rounded-[16px] bg-white px-4 py-3 text-black ring-2 ring-coral">{error}</p> : null}
-      <div className="sticky bottom-4 mt-8">
+      <div className="mt-6">
         <button type="submit" className="wp-btn wp-btn-primary wp-btn-block min-h-[58px]" disabled={!value || sending} aria-busy={sending}>
           {sending ? 'Wird gesendet …' : 'Antwort senden'}
         </button>
