@@ -15,6 +15,13 @@ export function ResultView({ question, results }: { question: Pick<PublicQuestio
       </div>
     )
   }
+  if (results.type === 'open' && !results.items.some(i => i.status === 'visible')) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="stage-label text-white/70">Antworten erscheinen nach der Freigabe</p>
+      </div>
+    )
+  }
   const c = question.config
   switch (results.type) {
     case 'choice':

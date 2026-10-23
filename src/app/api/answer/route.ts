@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
     p_value: body.value,
     p_client_key: clientKey(req),
   })
+  if (error) console.error('live: live_submit fehlgeschlagen', error.code, error.message)
   if (error || !data) return json({ error: 'server', message: 'Das hat nicht geklappt. Bitte nochmals senden.' }, 500)
   const r = data as { ok: boolean; duplicate?: boolean; error?: string }
   if (r.ok) return json({ ok: true, duplicate: Boolean(r.duplicate) })

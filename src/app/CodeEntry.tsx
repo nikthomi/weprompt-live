@@ -16,7 +16,7 @@ export function CodeEntry({ notFound }: { notFound: boolean }) {
         <label htmlFor="code">Code</label>
         <input
           id="code"
-          className="wp-input text-center font-[family-name:var(--font-brand)] !text-[34px] !font-bold uppercase tracking-[.18em]"
+          className="wp-input text-center font-[family-name:var(--font-brand)] !text-[34px] !font-bold uppercase tracking-[.18em] placeholder:!text-black/30"
           inputMode="text"
           autoCapitalize="characters"
           autoComplete="off"

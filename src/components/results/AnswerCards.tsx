@@ -6,7 +6,7 @@ import type { OpenItem } from '@/lib/types'
  */
 export function AnswerCards({ items }: { items: OpenItem[] }) {
   const visible = items.filter(i => i.status === 'visible').slice(0, 40)
-  const size = visible.length > 18 ? 'text-[clamp(11px,1.35cqw,26px)]' : visible.length > 8 ? 'text-[clamp(12px,1.7cqw,32px)]' : 'text-[clamp(13px,2.2cqw,42px)]'
+  const size = visible.length > 18 ? 'text-[clamp(11px,1.35cqw,26px)]' : visible.length > 8 ? 'text-[clamp(12px,1.7cqw,32px)]' : visible.length > 3 ? 'text-[clamp(13px,2.2cqw,42px)]' : 'text-[clamp(14px,2.8cqw,54px)]'
   return (
     <div className="h-full overflow-hidden [mask-image:linear-gradient(to_bottom,black_88%,transparent)]">
       <ul className={`gap-[1.4cqw] ${visible.length > 8 ? 'columns-3' : 'columns-2'}`}>
