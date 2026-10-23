@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+/* WePrompt-Designsystem (Artifact «WePrompt», Figma WePrompt V1).
+   Werte 1:1 aus tokens.json. Für die App ist nur die Schriftgrössen-Skala
+   verkleinert; Farben, Formen und Abstände bleiben unverändert. */
+@theme {
+  --color-violett: #6b11fe;
+  --color-amber: #f6ca70;
+  --color-coral: #f64462;
+  --color-mist: #f2f0ed;
+  --color-black: #1e1e1e;
+  --color-gray: #737373;
+  --color-white: #ffffff;
+
+  --font-brand: var(--font-bricolage), "Avenir Next", system-ui, sans-serif;
+  --font-text: var(--font-inter), "Avenir Next", system-ui, sans-serif;
+
+  --radius-card: 20px;
+  --radius-bubble: 25px;
+  --radius-pill: 35px;
+  --radius-nav: 36px;
+}
+
+/* Abstands-Tokens des Designsystems. Bewusst nicht in @theme, sonst würden sie
+   Tailwinds Skala überschreiben (px-10 wäre dann 10px statt 40px). */
+:root {
+  --space-10: 10px;
+  --space-16: 16px;
+  --space-25: 25px;
+  --space-32: 32px;
+  --space-35: 35px;
+  --space-100: 100px;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font-text);
+  font-weight: 500;
+  color: var(--color-black);
+  background: var(--color-violett);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Typografie (App-Skala) ───────────────────────────────────────────────── */
+.t-h1 { font-family: var(--font-brand); font-weight: 600; font-size: 32px; line-height: 36px; }
+.t-h2 { font-family: var(--font-brand); font-weight: 600; font-size: 26px; line-height: 30px; }
+.t-h3 { font-family: var(--font-brand); font-weight: 600; font-size: 20px; line-height: 24px; }
+.t-lead { font-family: var(--font-brand); font-weight: 500; font-size: 20px; line-height: 26px; }
+.t-body { font-family: var(--font-text); font-weight: 500; font-size: 16px; line-height: 24px; }
+.t-small { font-family: var(--font-text); font-weight: 500; font-size: 14px; line-height: 20px; letter-spacing: 0.05em; }
+.t-caption { font-family: var(--font-brand); font-weight: 600; font-size: 15px; line-height: 20px; text-transform: uppercase; letter-spacing: 0.02em; }
+@media (min-width: 768px) {
+  .t-h1 { font-size: 48px; line-height: 50px; }
+  .t-h2 { font-size: 32px; line-height: 36px; }
+  .t-h3 { font-size: 24px; line-height: 25px; }
+  .t-lead { font-size: 24px; line-height: 30px; }
+  .t-body { font-size: 18px; line-height: 28px; }
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────────
+   Weiss auf coral nur fett ab 19px (Kontrast 3.55:1, siehe README).
+   Kleine Aktionen deshalb als schwarze Kontur-Pille statt kleiner coral Buttons. */
+.wp-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 47px; padding: 10px 28px; border-radius: var(--radius-pill);
+  border: 1.5px solid transparent; font-family: var(--font-brand); font-weight: 700;
+  font-size: 19px; line-height: 1; text-transform: uppercase; text-decoration: none;
+  cursor: pointer; white-space: nowrap; transition: filter .15s, transform .1s;
+}
+.wp-btn:hover { filter: brightness(0.94); }
+.wp-btn:active { transform: scale(0.98); }
+.wp-btn:disabled { opacity: .5; cursor: default; transform: none; filter: none; }
+.wp-btn-primary { background: var(--color-coral); color: var(--color-white); }
+.wp-btn-block { display: flex; width: 100%; }
+
+.wp-btn-quiet {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 38px; padding: 6px 18px; border-radius: var(--radius-pill);
+  border: 2px solid var(--color-black); background: transparent; color: var(--color-black);
+  font-family: var(--font-brand); font-weight: 600; font-size: 15px; line-height: 1;
+  text-transform: uppercase; letter-spacing: .02em; cursor: pointer; white-space: nowrap;
+  transition: background .15s, color .15s;
+}
+.wp-btn-quiet:hover { background: var(--color-black); color: var(--color-white); }
+.wp-btn-quiet:disabled { opacity: .5; cursor: default; }
+.wp-btn-quiet.on-dark { border-color: var(--color-white); color: var(--color-white); }
+.wp-btn-quiet.on-dark:hover { background: var(--color-white); color: var(--color-violett); }
+
+.wp-arrow {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 47px; height: 47px; border-radius: 50%; background: var(--color-coral); color: var(--color-white);
+}
+.wp-arrow img { width: 16px; height: 13px; filter: invert(1); }
+
+.wp-tag {
+  display: inline-flex; align-items: center; padding: 2px 16px; border: 2px solid var(--color-black);
+  border-radius: var(--radius-pill); font-family: var(--font-brand); font-weight: 500;
+  font-size: 14px; line-height: 22px; text-transform: uppercase; white-space: nowrap; color: var(--color-black);
+}
+.wp-tag.on-dark { border-color: var(--color-white); color: var(--color-white); }
+
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-black); outline-offset: 3px;
+}
+.on-violett :where(a, button, input, textarea, select):focus-visible { outline-color: var(--color-white); }
+
+/* ── Formularfelder: Beschriftung über einer coral Linie, kein Kasten ───────── */
+.wp-field { display: flex; flex-direction: column; gap: 4px; }
+.wp-field > label, .wp-label { font-family: var(--font-brand); font-weight: 600; font-size: 15px; line-height: 20px; color: var(--color-black); }
+.wp-input {
+  width: 100%; border: 0; border-bottom: 1.5px solid var(--color-coral); border-radius: 0;
+  background: transparent; padding: 6px 0 4px; font-family: var(--font-text); font-weight: 500;
+  font-size: 17px; line-height: 26px; color: var(--color-black);
+}
+.wp-input::placeholder { color: rgb(30 30 30 / .62); opacity: 1; }
+.wp-input:focus { outline: none; border-bottom-width: 3px; padding-bottom: 2.5px; }
+textarea.wp-input { resize: vertical; min-height: 90px; }
+/* Nicht gray: gray auf amber erreicht nur 3.07:1. */
+.wp-hint { font-size: 14px; line-height: 20px; color: rgb(30 30 30 / .72); }
+
+/* ── Sprechblasen ─────────────────────────────────────────────────────────── */
+.wp-bubble { padding: 26px 22px 16px; max-width: 760px; }
+.wp-bubble-brand { background: var(--color-amber); border-radius: var(--radius-bubble) var(--radius-bubble) var(--radius-bubble) 0; }
+.wp-bubble-guest { background: var(--color-mist); border-radius: var(--radius-bubble) var(--radius-bubble) 0 var(--radius-bubble); }
+.wp-avatar { flex: none; width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--color-amber); }
+.wp-avatar img { width: 34px; height: auto; }
+@media (min-width: 768px) { .wp-bubble { padding: 32px 25px 16px; } .wp-avatar { width: 61px; height: 61px; } .wp-avatar img { width: 43px; } }
+
+
+
+/* ── Live: Bühne (Beamer) ─────────────────────────────────────────────────────
+   Typografie in vw/vh, damit sie auf jedem Projektor gleich wirkt. Die Bühne
+   ist ein eigener Container, deshalb rechnen die Ergebnis-Komponenten in cqw/cqh
+   und funktionieren genauso klein in der Vorschau des Admins. */
+.stage { container-type: size; }
+.stage-title { font-family: var(--font-brand); font-weight: 600; font-size: clamp(22px, 4.2cqw, 84px); line-height: 1.08; }
+.stage-sub { font-family: var(--font-text); font-weight: 500; font-size: clamp(13px, 1.7cqw, 34px); line-height: 1.35; }
+.stage-meta { font-family: var(--font-brand); font-weight: 600; font-size: clamp(11px, 1.35cqw, 26px); line-height: 1.2; text-transform: uppercase; letter-spacing: .03em; }
+.stage-label { font-family: var(--font-brand); font-weight: 600; font-size: clamp(12px, 2.1cqw, 42px); line-height: 1.15; }
+.stage-num { font-family: var(--font-brand); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Ruhige Bewegungen: Balken wachsen, Karten erscheinen, Wörter gleiten. */
+.bar-fill { transition: width .7s cubic-bezier(.22,1,.36,1), height .7s cubic-bezier(.22,1,.36,1); }
+@keyframes wp-rise { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+.wp-rise { animation: wp-rise .5s cubic-bezier(.22,1,.36,1) both; }
+@keyframes wp-fade { from { opacity: 0; } to { opacity: 1; } }
+.wp-fade { animation: wp-fade .45s ease-out both; }
+.cloud-word { transition: transform .8s cubic-bezier(.22,1,.36,1), font-size .8s cubic-bezier(.22,1,.36,1), opacity .5s ease-out; }
+@keyframes wp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.wp-pulse { animation: wp-pulse 1.6s ease-in-out infinite; }
+
+/* Grosse Auswahlflächen auf dem Handy */
+.choice-tile {
+  display: flex; align-items: center; gap: 14px; width: 100%; min-height: 60px; padding: 14px 18px;
+  border-radius: var(--radius-card); background: var(--color-white); color: var(--color-black);
+  border: 2.5px solid transparent; text-align: left; font-family: var(--font-brand); font-weight: 600;
+  font-size: 19px; line-height: 24px; cursor: pointer; transition: border-color .15s, background .15s, transform .1s;
+}
+.choice-tile:active { transform: scale(.985); }
+.choice-tile[aria-checked="true"], .choice-tile[aria-pressed="true"] { border-color: var(--color-black); background: var(--color-amber); }
+.choice-mark {
+  flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid var(--color-black);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.choice-mark.square { border-radius: 8px; }
+.choice-tile[aria-checked="true"] .choice-mark { background: var(--color-black); }
+.choice-tile[aria-checked="true"] .choice-mark::after { content: ""; width: 10px; height: 10px; border-radius: inherit; background: var(--color-amber); }
+
+/* Admin: Panels auf mist */
+.panel { background: var(--color-white); border-radius: var(--radius-card); padding: 22px; }
+@media (min-width: 768px) { .panel { padding: 28px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; animation-iteration-count: 1 !important; }
+}
