@@ -76,6 +76,18 @@ npm run loadtest -- http://localhost:3010 100     # Lasttest gegen eine laufende
 
 Die Datenbanktests (`tests/db/live.test.ts`) laufen in PGlite mit einem Nachbau der Supabase-Umgebung: Validierung je Fragetyp, Doppelabgaben, geschlossene Abstimmungen, Rate Limit, 100 gleichzeitige Stimmen, Realtime-Meldungen, Rechte von anon / eingeloggt / Moderation / Admin, Duplizieren, Zurücksetzen, Sortieren, Moderation.
 
+### Lasttest mit 100 Teilnehmenden gegen live.weprompt.ch (23.10.2026, Vercel fra1, produktives Supabase)
+
+| Messung | Ergebnis |
+|---|---|
+| 100 Beitritte gleichzeitig | 0 Fehler, median 1,2 s (inkl. Kaltstart der Funktionen) |
+| 100 Realtime-Verbindungen | in 0,5 s aufgebaut |
+| Fragewechsel bis zu allen 100 Handys | 100/100 erhalten, median 107–377 ms, max 387 ms |
+| 100 gleichzeitige Antworten | 0,4–0,8 s für alle, median 270–594 ms, p95 ≤ 733 ms |
+| 100 Wiederholungen | alle als «doppelt» bestätigt, keine zusätzliche Stimme |
+| Nachgezählt | 100 von 100 bei allen vier Fragetypen |
+| Antwort nach dem Schliessen | abgelehnt (HTTP 409) |
+
 ### Lasttest mit 100 Teilnehmenden (23.10.2026, lokale Instanz gegen das produktive Supabase-Projekt)
 
 Jede simulierte Person tritt über `/api/join` bei und hält eine eigene Realtime-Verbindung. Pro Frage: aktivieren, alle 100 antworten gleichzeitig, jede Person sendet ein zweites Mal, dann wird in der Datenbank nachgezählt.
@@ -100,6 +112,8 @@ In einem von fünf Läufen schlug eine einzelne Wiederholung mit HTTP 500 fehl (
 4. **Lokal:** `npm install && npm run dev` (Port 3000). `/dev/vorschau` zeigt alle Beamer-Zustände mit Beispieldaten (nur Entwicklung).
 
 ### Vercel und Domain
+
+Live seit 23.10.2026: Repository `nikthomi/weprompt-live`, Vercel-Projekt im WePrompt-Account, jeder Push auf `main` deployt.
 
 1. Neues Vercel-Projekt aus diesem Repository (Framework Next.js, Region `fra1` via `vercel.json`).
 2. Umgebungsvariablen aus `.env.example` setzen, `NEXT_PUBLIC_APP_URL=https://live.weprompt.ch`, eigener `RATE_LIMIT_SALT`.
