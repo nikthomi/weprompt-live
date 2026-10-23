@@ -9,14 +9,15 @@ import { SessionMenu } from './SessionMenu'
 
 export const metadata: Metadata = { title: 'Sessions' }
 
-type Row = Pick<Session, 'id' | 'title' | 'code' | 'status' | 'event_date' | 'created_at'> & { live_questions: { count: number }[] }
+type Row = Pick<Session, 'id' | 'title' | 'code' | 'status' | 'event_date' | 'created_at'> & { live_questions: { id: string }[] }
 
 export default async function SessionsPage({ searchParams }: { searchParams: Promise<{ archiv?: string }> }) {
   const archive = (await searchParams).archiv === '1'
   const { supabase } = await requireAdmin()
-  let query = supabase.from('live_sessions').select('id, title, code, status, event_date, created_at, live_questions(count)')
+  let query = supabase.from('live_sessions').select('id, title, code, status, event_date, created_at, live_questions!live_questions_session_id_fkey(id)')
   query = archive ? query.eq('status', 'archived') : query.neq('status', 'archived')
-  const { data } = await query.order('created_at', { ascending: false }).limit(200)
+  const { data, error } = await query.order('created_at', { ascending: false }).limit(200)
+  if (error) throw new Error(`Sessions konnten nicht geladen werden: ${error.message}`)
   const sessions = (data ?? []) as Row[]
 
   return (
@@ -36,7 +37,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
                 <div className="min-w-0">
                   <Link href={`/admin/sessions/${s.id}`} className="t-h3 block [overflow-wrap:anywhere] hover:underline">{s.title}</Link>
                   <p className="t-small mt-1 text-gray">
-                    {s.event_date ? formatDate(s.event_date) : `Erstellt am ${formatDate(s.created_at)}`} · {s.live_questions[0]?.count ?? 0} Fragen · Code {s.code}
+                    {s.event_date ? formatDate(s.event_date) : `Erstellt am ${formatDate(s.created_at)}`} · {s.live_questions.length} {s.live_questions.length === 1 ? 'Frage' : 'Fragen'} · Code {s.code}
                   </p>
                 </div>
                 <StatusTag status={s.status} />
