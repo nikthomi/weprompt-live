@@ -98,6 +98,8 @@ body {
   font-size: 14px; line-height: 22px; text-transform: uppercase; white-space: nowrap; color: var(--color-black);
 }
 .wp-tag.on-dark { border-color: var(--color-white); color: var(--color-white); }
+.wp-tag.compact { padding: 2px 10px; border: 0; background: var(--color-mist); font-size: 12px; line-height: 20px; }
+.wp-tag.compact.live { background: var(--color-black); color: var(--color-white); }
 
 :where(a, button, input, textarea, select, [tabindex]):focus-visible {
   outline: 3px solid var(--color-black); outline-offset: 3px;

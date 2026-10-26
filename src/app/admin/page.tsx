@@ -13,7 +13,7 @@ type Row = Pick<Session, 'id' | 'title' | 'code' | 'status' | 'event_date' | 'cr
 
 export default async function SessionsPage({ searchParams }: { searchParams: Promise<{ archiv?: string }> }) {
   const archive = (await searchParams).archiv === '1'
-  const { supabase } = await requireAdmin()
+  const { supabase, admin } = await requireAdmin()
   let query = supabase.from('live_sessions').select('id, title, code, status, event_date, created_at, live_questions!live_questions_session_id_fkey(id)')
   query = archive ? query.eq('status', 'archived') : query.neq('status', 'archived')
   const { data, error } = await query.order('created_at', { ascending: false }).limit(200)
@@ -21,33 +21,46 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
   const sessions = (data ?? []) as Row[]
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="t-h1">{archive ? 'Archiv' : 'Sessions'}</h1>
+        <div>
+          <h1 className="t-h1">{archive ? 'Archiv' : 'Sessions'}</h1>
+          <p className="t-small mt-2 text-gray">
+            {sessions.length} {sessions.length === 1 ? 'Session' : 'Sessions'}
+          </p>
+        </div>
         <Link href={archive ? '/admin' : '/admin?archiv=1'} className="wp-btn-quiet">{archive ? 'Aktuelle Sessions' : 'Archiv'}</Link>
       </div>
       {archive ? null : <NewSessionForm />}
       {sessions.length === 0 ? (
         <p className="t-body rounded-[var(--radius-card)] bg-white px-6 py-8">{archive ? 'Noch nichts archiviert.' : 'Noch keine Sessions. Lege oben deine erste an.'}</p>
       ) : (
-        <ul className="grid gap-4 md:grid-cols-2">
+        <ul className="flex flex-col gap-3">
           {sessions.map(s => (
-            <li key={s.id} className="relative flex flex-col gap-4 rounded-[var(--radius-card)] bg-white p-6">
-              <div className="flex items-start justify-between gap-3">
+            <li key={s.id}>
+              <article className="grid gap-5 rounded-[var(--radius-card)] bg-white p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:px-6">
                 <div className="min-w-0">
-                  <Link href={`/admin/sessions/${s.id}`} className="t-h3 block [overflow-wrap:anywhere] hover:underline">{s.title}</Link>
-                  <p className="t-small mt-1 text-gray">
-                    {s.event_date ? formatDate(s.event_date) : `Erstellt am ${formatDate(s.created_at)}`} · {s.live_questions.length} {s.live_questions.length === 1 ? 'Frage' : 'Fragen'} · Code {s.code}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Link href={`/admin/sessions/${s.id}`} className="t-h3 [overflow-wrap:anywhere] hover:underline hover:underline-offset-4">{s.title}</Link>
+                    <StatusTag status={s.status} compact />
+                  </div>
+                  <dl className="t-small mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-gray">
+                    <div className="flex gap-1"><dt className="sr-only">Datum</dt><dd>{s.event_date ? formatDate(s.event_date) : `Erstellt am ${formatDate(s.created_at)}`}</dd></div>
+                    <div className="flex gap-1"><dt className="sr-only">Fragen</dt><dd>{s.live_questions.length} {s.live_questions.length === 1 ? 'Frage' : 'Fragen'}</dd></div>
+                    <div className="flex gap-1"><dt>Code</dt><dd className="font-mono font-semibold tracking-[0.12em] text-black">{s.code}</dd></div>
+                  </dl>
                 </div>
-                <StatusTag status={s.status} />
-              </div>
-              <div className="mt-auto flex flex-wrap gap-2">
-                <Link href={`/admin/sessions/${s.id}`} className="wp-btn-quiet">Bearbeiten</Link>
-                {s.status !== 'archived' ? <Link href={`/admin/sessions/${s.id}/live`} className="wp-btn-quiet">Live steuern</Link> : null}
-                <Link href={`/admin/sessions/${s.id}/ergebnisse`} className="wp-btn-quiet">Ergebnisse</Link>
-                <SessionMenu id={s.id} archived={s.status === 'archived'} />
-              </div>
+                <div className="flex flex-wrap items-center gap-1 md:justify-end">
+                  {s.status !== 'archived' ? (
+                    <Link href={`/admin/sessions/${s.id}/live`} className="inline-flex min-h-10 items-center rounded-full bg-black px-5 font-[family-name:var(--font-brand)] text-[15px] font-semibold text-white transition-[background,transform] hover:bg-violett active:scale-[.98]">Live steuern</Link>
+                  ) : (
+                    <Link href={`/admin/sessions/${s.id}`} className="inline-flex min-h-10 items-center rounded-full bg-black px-5 font-[family-name:var(--font-brand)] text-[15px] font-semibold text-white transition-[background,transform] hover:bg-violett active:scale-[.98]">Öffnen</Link>
+                  )}
+                  <Link href={`/admin/sessions/${s.id}`} className="rounded-full px-3 py-2 font-[family-name:var(--font-brand)] text-[15px] font-semibold hover:bg-mist">Bearbeiten</Link>
+                  <Link href={`/admin/sessions/${s.id}/ergebnisse`} className="rounded-full px-3 py-2 font-[family-name:var(--font-brand)] text-[15px] font-semibold hover:bg-mist">Ergebnisse</Link>
+                  <SessionMenu id={s.id} archived={s.status === 'archived'} canDelete={admin.role === 'admin'} />
+                </div>
+              </article>
             </li>
           ))}
         </ul>

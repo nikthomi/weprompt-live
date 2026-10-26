@@ -7,6 +7,7 @@ import { Stage } from '@/components/Stage'
 import { BoardEditor } from '@/components/board/BoardEditor'
 import { useCountdown } from '@/lib/clock'
 import { ExportPng, pngName } from '@/components/ExportPng'
+import { PresentationWindowButton } from '@/components/PresentationWindowButton'
 import { StatusTag } from '@/components/StatusTag'
 import { createClient } from '@/lib/supabase/browser'
 import { throttle, useLiveChannel } from '@/lib/realtime'
@@ -129,7 +130,7 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a href={presentUrl} target="wp-live-present" className="wp-btn-quiet">Präsentation öffnen</a>
+          <PresentationWindowButton url={presentUrl} />
           <button type="button" className="wp-btn-quiet" disabled={pending} onClick={reset}>Zurücksetzen</button>
           {isLive ? (
             <button type="button" className="wp-btn-quiet" disabled={pending}

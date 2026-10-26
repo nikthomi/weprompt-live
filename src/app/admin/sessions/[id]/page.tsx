@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { StatusTag } from '@/components/StatusTag'
+import { PresentationWindowButton } from '@/components/PresentationWindowButton'
 import { requireAdmin } from '@/lib/auth'
 import { joinUrl, presentUrl, shortJoinUrl } from '@/lib/app-url'
 import type { Question, Session } from '@/lib/types'
@@ -34,7 +35,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
             <StatusTag status={session.status} />
           </div>
           <div className="flex flex-wrap gap-2">
-            <a href={presentUrl(session.present_token)} target="wp-live-present" className="wp-btn-quiet">Präsentation öffnen</a>
+            <PresentationWindowButton url={presentUrl(session.present_token)} />
             <Link href={`/admin/sessions/${id}/ergebnisse`} className="wp-btn-quiet">Ergebnisse</Link>
             {session.status !== 'archived' ? <Link href={`/admin/sessions/${id}/live`} className="wp-btn wp-btn-primary">Live steuern</Link> : null}
           </div>
