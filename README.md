@@ -22,7 +22,13 @@ Live-Steuerung per Tastatur: ← → Fragen wechseln · O Abstimmung öffnen/sch
 | Multiple Choice | Auswahlkacheln | animierte Balken mit Stimmen und Prozent | 2–12 Optionen, Einfach- oder Mehrfachauswahl, max. auswählbar |
 | Ja/Nein | zwei grosse Kacheln | zwei grosse Prozentzahlen über geteiltem Balken | – |
 | Skala | Zahlenkacheln | Säulen pro Wert, Durchschnitt gross und als Markierung | 1–5 oder 1–10, Beschriftung der Enden |
-| Offene Frage | Textfeld (20–500 Zeichen) | Antwortkarten als Sprechblasen, neue Karten blenden ein | Länge, Zurückhalten bis zur Freigabe; Antworten ausblenden/löschen |
+| Offene Frage | Textfeld (20–500 Zeichen) | Antwortkarten, neue Karten blenden ein | Länge, Zurückhalten bis zur Freigabe; Antworten ausblenden/löschen |
+| Quiz Richtig/Falsch | zwei Kacheln, ein Tipp sendet; danach «Richtig!»/«Leider falsch.» mit Bilanz | Aussage, Bild, Countdown-Ring; nach der Auflösung richtige Kachel in amber mit Prozent | richtige Antwort, Timer (10/20/30/60 s oder ohne), Bild (wird auf 1600 px verkleinert) |
+| Manuelle Wortwolke | keine Eingabe («Schau auf die Leinwand») | Leinwand mit Begriffen und Kategorien, die die Kursleitung live verschiebt | Kategorien und Begriffe vorbereiten; Grösse der Begriffe |
+
+**Quiz:** Die richtige Antwort bleibt bis zur Auflösung auf dem Server (nicht im öffentlichen Zustand, nicht in Realtime-Meldungen). Den Timer setzt die Datenbank beim Aktivieren (`voting_deadline`), Antworten danach oder nach der Auflösung werden abgelehnt. Die Live-Steuerung löst bei Zeitablauf automatisch auf, «Jetzt auflösen» (Taste E) geht früher. Abstimmung wieder öffnen startet den Timer neu. Die Bilanz «x von y richtig» zählt jedes Gerät für sich (lokal gespeichert, keine Rangliste).
+
+**Manuelle Wortwolke:** Unter «Live steuern» wird die Vorschau zur bearbeitbaren Leinwand (16:7). Begriff eintippen + Enter legt ihn auf freie Fläche oder in die ausgewählte Kategorie. Ziehen verschiebt, die Ecke unten rechts ändert die Grösse einer Kategorie, Begriffe darin wandern mit. Doppelklick oder Enter benennt um, Entf löscht, Pfeile verschieben fein. Positionen werden während des Ziehens alle 250 ms gespeichert; der Beamer folgt mit sanfter Bewegung. Duplizieren übernimmt die Leinwand, Zurücksetzen löscht nur die Begriffe.
 
 Bei Mehrfachauswahl beziehen sich die Prozente auf die Personen, die abgestimmt haben (Summe kann über 100 % liegen); das steht auch unter dem Diagramm.
 
@@ -53,6 +59,9 @@ Admin ── Supabase-Session (RLS) ──────────────�
 | `live_responses` | eine Zeile pro Gerät und Frage – **`unique (question_id, participant_id)`**; Wert (JSON), Moderationsstatus |
 | `live_hidden_words` | ausgeblendete Begriffe einer Wortwolke |
 | `live_rate_limits` | Zähler für Rate Limits (unlogged, wird stündlich ausgedünnt) |
+| `live_board_items` | Leinwand der manuellen Wortwolke: Begriffe und Kategorien mit relativen Koordinaten (0–1) |
+
+Storage: öffentlicher Bucket `live-images` für Quiz-Bilder (JPG/PNG/WebP, max. 5 MB, hochladen und löschen nur für Admins). Migrationen: `20261023100000_live.sql` (Grundlage), `20261026100000_live_quiz_board.sql` (Quiz, Leinwand, Bilder).
 
 Das Projekt teilt sich die Supabase-Instanz mit Anmelde-Tool und Kursportal, ist aber unabhängig: nur `live_`-Objekte, keine Verweise auf andere Tabellen. Gemeinsam ist nur `auth.users` (dieselben Logins).
 
@@ -70,8 +79,9 @@ Das Projekt teilt sich die Supabase-Instanz mit Anmelde-Tool und Kursportal, ist
 ## Tests
 
 ```bash
-npm test                                          # 24 Datenbanktests (PGlite, ohne Zugangsdaten)
+npm test                                          # 35 Datenbanktests (PGlite, ohne Zugangsdaten)
 npm run loadtest -- http://localhost:3010 100     # Lasttest gegen eine laufende Instanz
+node --env-file=.env.local scripts/e2e-quiz-board.mjs https://live.weprompt.ch   # Quiz und Leinwand Ende-zu-Ende
 ```
 
 Die Datenbanktests (`tests/db/live.test.ts`) laufen in PGlite mit einem Nachbau der Supabase-Umgebung: Validierung je Fragetyp, Doppelabgaben, geschlossene Abstimmungen, Rate Limit, 100 gleichzeitige Stimmen, Realtime-Meldungen, Rechte von anon / eingeloggt / Moderation / Admin, Duplizieren, Zurücksetzen, Sortieren, Moderation.
