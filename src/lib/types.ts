@@ -22,6 +22,8 @@ export type QuestionConfig = {
   moderation?: boolean
   // quiz
   correct?: 'yes' | 'no'
+  /** Eigene Beschriftung der beiden Antworten, z. B. «Echt» und «KI». */
+  labels?: { yes: string; no: string }
   seconds?: number
   imageUrl?: string
 }
@@ -114,7 +116,7 @@ export const QUESTION_TYPES: { type: QuestionType; label: string; hint: string }
   { type: 'yesno', label: 'Ja/Nein', hint: 'Schnelle Abstimmung mit zwei Optionen.' },
   { type: 'scale', label: 'Skala', hint: 'Bewertung von 1 bis 5 oder 1 bis 10.' },
   { type: 'open', label: 'Offene Frage', hint: 'Kurze Textantworten als Karten.' },
-  { type: 'quiz', label: 'Quiz Richtig/Falsch', hint: 'Aussage mit Bild und Timer, danach die Auflösung.' },
+  { type: 'quiz', label: 'Quiz mit zwei Antworten', hint: 'Z. B. Richtig/Falsch oder Echt/KI, mit Bild, Timer und Auflösung.' },
   { type: 'board', label: 'Manuelle Wortwolke', hint: 'Du schreibst Begriffe auf und ordnest sie in Kategorien.' },
 ]
 
@@ -126,7 +128,7 @@ export const QUIZ: ChoiceOption[] = [{ id: 'yes', label: 'Richtig' }, { id: 'no'
 /** Optionen einer Auswahlfrage (Ja/Nein hat feste Optionen). */
 export function optionsOf(type: QuestionType, config: QuestionConfig): ChoiceOption[] {
   if (type === 'yesno') return YES_NO
-  if (type === 'quiz') return QUIZ
+  if (type === 'quiz') return [{ id: 'yes', label: config.labels?.yes || QUIZ[0].label }, { id: 'no', label: config.labels?.no || QUIZ[1].label }]
   return config.options ?? []
 }
 

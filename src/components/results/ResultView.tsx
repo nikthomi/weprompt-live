@@ -14,7 +14,7 @@ export function ResultView({ question, results }: { question: Pick<PublicQuestio
   if (question.type === 'quiz' && results?.type === 'quiz') {
     return (
       <div className="flex h-full flex-col justify-center">
-        <QuizTiles counts={results.counts} respondents={results.respondents} correct={question.config.correct} />
+        <QuizTiles options={optionsOf('quiz', question.config)} counts={results.counts} respondents={results.respondents} correct={question.config.correct} />
       </div>
     )
   }

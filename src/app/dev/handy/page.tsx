@@ -16,8 +16,8 @@ export default async function Preview({ searchParams }: { searchParams: Promise<
     scale: q('scale', 'Wie sicher fühlst du dich im Umgang mit KI?', { min: 1, max: 5, minLabel: 'unsicher', maxLabel: 'sehr sicher' }),
     words: q('wordcloud', 'Welches Wort verbindest du mit künstlicher Intelligenz?', { maxWords: 3 }),
     open: q('open', 'Was möchtest du heute lernen?', { maxLength: 200, moderation: true }),
-    quiz: q('quiz', 'Foto oder KI?', { seconds: 20, imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200' }),
-    'quiz-auf': q('quiz', 'Foto oder KI?', { seconds: 20, correct: 'no', imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200' }),
+    quiz: q('quiz', 'Foto oder KI?', { seconds: 20, labels: { yes: 'Echt', no: 'KI' }, imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200' }),
+    'quiz-auf': q('quiz', 'Foto oder KI?', { seconds: 20, correct: 'no', labels: { yes: 'Echt', no: 'KI' }, imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200' }),
     board: q('board', 'Wo siehst du Chancen und Risiken von KI?'),
   }
   const state: JoinState = {

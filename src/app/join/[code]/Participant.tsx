@@ -316,7 +316,8 @@ function QuizScreen({ state, q, code, pid, onAnswered, onClosed }: {
   const [sending, setSending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const mine = state.myAnswer && 'options' in state.myAnswer ? state.myAnswer.options[0] : null
-  const label = (id: string | null | undefined) => (id === 'yes' ? 'Richtig' : id === 'no' ? 'Falsch' : '')
+  const options = optionsOf('quiz', q.config)
+  const label = (id: string | null | undefined) => options.find(o => o.id === id)?.label ?? ''
   const timeUp = left === 0 || !state.votingOpen
 
   const correct = state.reveal ? q.config.correct : undefined

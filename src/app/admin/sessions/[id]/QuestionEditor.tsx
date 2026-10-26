@@ -52,11 +52,24 @@ export function QuestionEditor({ question, responses }: { question: Question; re
       {question.type === 'quiz' ? (
         <div className="flex flex-col gap-6">
           <div className="grid gap-5 sm:grid-cols-2">
+            <div className="wp-field">
+              <label htmlFor={`a1-${question.id}`}>Antwort 1</label>
+              <input id={`a1-${question.id}`} className="wp-input" maxLength={30} placeholder="Richtig"
+                value={config.labels?.yes ?? 'Richtig'} onChange={e => set({ labels: { yes: e.target.value, no: config.labels?.no ?? 'Falsch' } })} />
+            </div>
+            <div className="wp-field">
+              <label htmlFor={`a2-${question.id}`}>Antwort 2</label>
+              <input id={`a2-${question.id}`} className="wp-input" maxLength={30} placeholder="Falsch"
+                value={config.labels?.no ?? 'Falsch'} onChange={e => set({ labels: { yes: config.labels?.yes ?? 'Richtig', no: e.target.value } })} />
+            </div>
+          </div>
+          <p className="wp-hint -mt-3">Zum Beispiel «Echt» und «KI» oder «Stimmt» und «Stimmt nicht».</p>
+          <div className="grid gap-5 sm:grid-cols-2">
             <div className="wp-field max-w-[260px]">
               <label htmlFor={`c-${question.id}`}>Richtige Antwort</label>
               <select id={`c-${question.id}`} className="wp-input cursor-pointer" value={config.correct ?? 'yes'} onChange={e => set({ correct: e.target.value as 'yes' | 'no' })}>
-                <option value="yes">Richtig</option>
-                <option value="no">Falsch</option>
+                <option value="yes">{config.labels?.yes || 'Richtig'}</option>
+                <option value="no">{config.labels?.no || 'Falsch'}</option>
               </select>
             </div>
             <NumberSelect label="Zeit zum Antworten" value={config.seconds ?? 20} options={[10, 20, 30, 60, 0]}

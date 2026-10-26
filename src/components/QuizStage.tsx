@@ -2,7 +2,7 @@
 
 import { QuizTiles, TimerRing } from '@/components/results/Quiz'
 import { useCountdown } from '@/lib/clock'
-import type { Snapshot } from '@/lib/types'
+import { optionsOf, type Snapshot } from '@/lib/types'
 
 /** Quizfrage auf der Bühne: Aussage, Bild, Timer, danach die Auflösung. */
 export function QuizStage({ snap }: { snap: Snapshot }) {
@@ -22,7 +22,7 @@ export function QuizStage({ snap }: { snap: Snapshot }) {
           <img src={q.config.imageUrl} alt="" className="max-h-full max-w-full rounded-[min(1.2cqw,16px)] object-contain" />
         ) : null}
       </div>
-      <QuizTiles counts={counts} respondents={snap.results?.respondents ?? 0} correct={snap.reveal ? q.config.correct : undefined} />
+      <QuizTiles options={optionsOf('quiz', q.config)} counts={counts} respondents={snap.results?.respondents ?? 0} correct={snap.reveal ? q.config.correct : undefined} />
     </div>
   )
 }

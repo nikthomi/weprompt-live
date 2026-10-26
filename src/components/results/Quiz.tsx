@@ -1,15 +1,18 @@
 import { pct } from '@/lib/format'
+import type { ChoiceOption } from '@/lib/types'
 
 /**
- * Richtig/Falsch-Kacheln. Vor der Auflösung nur die Beschriftung, danach
- * Stimmen und Prozent; die richtige Kachel in amber mit Häkchen.
+ * Zwei Antwort-Kacheln (z. B. Richtig/Falsch oder Echt/KI). Vor der Auflösung
+ * nur die Beschriftung, danach Stimmen und Prozent; die richtige Kachel in
+ * amber mit Häkchen.
  */
-export function QuizTiles({ counts, respondents, correct }: {
+export function QuizTiles({ options, counts, respondents, correct }: {
+  options: ChoiceOption[]
   counts: Record<string, number> | null
   respondents: number
   correct: 'yes' | 'no' | undefined
 }) {
-  const tiles = [{ id: 'yes', label: 'Richtig' }, { id: 'no', label: 'Falsch' }] as const
+  const tiles = options
   const revealed = Boolean(correct && counts)
   return (
     <div className="grid grid-cols-2 gap-[2cqw]">
