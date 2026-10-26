@@ -29,6 +29,7 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
   const [error, setError] = useState<string | null>(null)
   const [pending, start] = useTransition()
   const stageRef = useRef<HTMLDivElement>(null)
+  const actionsRef = useRef<HTMLDetailsElement>(null)
 
   const load = useCallback(async () => {
     const { data } = await supabase.rpc('live_admin_snapshot', { p_session_id: session.id })
@@ -129,19 +130,33 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
             {connection === 'live' ? '' : connection === 'offline' ? ' · Verbindung unterbrochen, Daten werden abgefragt' : ' · verbinde …'}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <PresentationWindowButton url={presentUrl} />
-          <button type="button" className="wp-btn-quiet" disabled={pending} onClick={reset}>Zurücksetzen</button>
-          {isLive ? (
-            <button type="button" className="wp-btn-quiet" disabled={pending}
-              onClick={() => { if (confirm('Session beenden? Teilnehmende sehen danach «Danke fürs Mitmachen».')) update({ status: 'ended' }) }}>
-              Session beenden
-            </button>
-          ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <PresentationWindowButton url={presentUrl} label="Präsentation" className="rounded-full px-4 py-2 font-[family-name:var(--font-brand)] text-[15px] font-semibold transition-colors hover:bg-white" />
+          {isLive ? null : (
             <button type="button" className="wp-btn wp-btn-primary" disabled={pending} onClick={() => update({ status: 'live', current_question_id: null, show_qr: false })}>
               {snap.status === 'ended' ? 'Wieder öffnen' : 'Session starten'}
             </button>
           )}
+          <details ref={actionsRef} className="relative">
+            <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full font-bold tracking-[0.14em] transition-colors hover:bg-white [&::-webkit-details-marker]:hidden" aria-label="Weitere Aktionen">
+              <span aria-hidden>•••</span>
+            </summary>
+            <div className="absolute right-0 top-12 z-20 min-w-52 rounded-[16px] border border-black/15 bg-white p-2">
+              <button type="button" className="w-full rounded-[10px] px-3 py-2 text-left text-[15px] font-semibold hover:bg-mist disabled:opacity-50" disabled={pending}
+                onClick={() => { actionsRef.current?.removeAttribute('open'); reset() }}>
+                Session zurücksetzen
+              </button>
+              {isLive ? (
+                <button type="button" className="mt-1 w-full border-t border-black/10 px-3 pb-2 pt-3 text-left text-[15px] font-semibold text-coral hover:bg-mist disabled:opacity-50" disabled={pending}
+                  onClick={() => {
+                    actionsRef.current?.removeAttribute('open')
+                    if (confirm('Session beenden? Teilnehmende sehen danach «Danke fürs Mitmachen».')) update({ status: 'ended' })
+                  }}>
+                  Session beenden
+                </button>
+              ) : null}
+            </div>
+          </details>
         </div>
       </div>
 

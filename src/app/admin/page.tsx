@@ -2,19 +2,21 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/auth'
 import { formatDate } from '@/lib/format'
+import { presentUrl } from '@/lib/app-url'
 import { StatusTag } from '@/components/StatusTag'
+import { LiveControlLauncher } from '@/components/LiveControlLauncher'
 import type { Session } from '@/lib/types'
 import { NewSessionForm } from './NewSessionForm'
 import { SessionMenu } from './SessionMenu'
 
 export const metadata: Metadata = { title: 'Sessions' }
 
-type Row = Pick<Session, 'id' | 'title' | 'code' | 'status' | 'event_date' | 'created_at'> & { live_questions: { id: string }[] }
+type Row = Pick<Session, 'id' | 'title' | 'code' | 'status' | 'event_date' | 'created_at' | 'present_token'> & { live_questions: { id: string }[] }
 
 export default async function SessionsPage({ searchParams }: { searchParams: Promise<{ archiv?: string }> }) {
   const archive = (await searchParams).archiv === '1'
   const { supabase, admin } = await requireAdmin()
-  let query = supabase.from('live_sessions').select('id, title, code, status, event_date, created_at, live_questions!live_questions_session_id_fkey(id)')
+  let query = supabase.from('live_sessions').select('id, title, code, status, event_date, created_at, present_token, live_questions!live_questions_session_id_fkey(id)')
   query = archive ? query.eq('status', 'archived') : query.neq('status', 'archived')
   const { data, error } = await query.order('created_at', { ascending: false }).limit(200)
   if (error) throw new Error(`Sessions konnten nicht geladen werden: ${error.message}`)
@@ -52,7 +54,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
                 </div>
                 <div className="flex flex-wrap items-center gap-1 md:justify-end">
                   {s.status !== 'archived' ? (
-                    <Link href={`/admin/sessions/${s.id}/live`} className="inline-flex min-h-10 items-center rounded-full bg-black px-5 font-[family-name:var(--font-brand)] text-[15px] font-semibold text-white transition-[background,transform] hover:bg-violett active:scale-[.98]">Live steuern</Link>
+                    <LiveControlLauncher href={`/admin/sessions/${s.id}/live`} presentationUrl={presentUrl(s.present_token)} className="inline-flex min-h-10 items-center rounded-full bg-black px-5 font-[family-name:var(--font-brand)] text-[15px] font-semibold text-white transition-[background,transform] hover:bg-violett active:scale-[.98]" />
                   ) : (
                     <Link href={`/admin/sessions/${s.id}`} className="inline-flex min-h-10 items-center rounded-full bg-black px-5 font-[family-name:var(--font-brand)] text-[15px] font-semibold text-white transition-[background,transform] hover:bg-violett active:scale-[.98]">Öffnen</Link>
                   )}
