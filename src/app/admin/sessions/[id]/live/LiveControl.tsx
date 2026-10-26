@@ -57,6 +57,17 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
     })
   }, [supabase, session.id, load])
 
+  // Alle Antworten löschen und zurück auf Entwurf, z. B. nach einem Probedurchlauf.
+  const reset = useCallback(() => {
+    if (!confirm('Session zurücksetzen? Alle Antworten und Teilnehmenden werden gelöscht, die Session steht wieder auf Entwurf. Fragen und vorbereitete Kategorien bleiben. Das lässt sich nicht rückgängig machen.')) return
+    setError(null)
+    start(async () => {
+      const { error } = await supabase.rpc('live_reset_session', { p_session_id: session.id })
+      if (error) setError('Zurücksetzen fehlgeschlagen. Prüfe die Verbindung und versuche es nochmals.')
+      await load()
+    })
+  }, [supabase, session.id, load])
+
   const index = questions.findIndex(q => q.id === snap.question?.id)
   const isLive = snap.status === 'live'
   const qType = snap.question?.type
@@ -119,6 +130,7 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
         </div>
         <div className="flex flex-wrap gap-2">
           <a href={presentUrl} target="wp-live-present" className="wp-btn-quiet">Präsentation öffnen</a>
+          <button type="button" className="wp-btn-quiet" disabled={pending} onClick={reset}>Zurücksetzen</button>
           {isLive ? (
             <button type="button" className="wp-btn-quiet" disabled={pending}
               onClick={() => { if (confirm('Session beenden? Teilnehmende sehen danach «Danke fürs Mitmachen».')) update({ status: 'ended' }) }}>

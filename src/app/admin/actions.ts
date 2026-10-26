@@ -77,6 +77,7 @@ export async function resetSession(id: string) {
   const { error } = await supabase.rpc('live_reset_session', { p_session_id: id })
   if (error) throw new Error('Zurücksetzen fehlgeschlagen.')
   revalidatePath(`/admin/sessions/${id}`)
+  revalidatePath('/admin')
 }
 
 export async function deleteSession(id: string) {

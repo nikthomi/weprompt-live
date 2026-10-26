@@ -16,7 +16,7 @@ export function DangerZone({ id, status, canDelete }: { id: string; status: Sess
       <div className="mt-4 flex flex-wrap gap-2">
         <button type="button" className="wp-btn-quiet" disabled={pending} onClick={() => run(null, () => duplicateSession(id))}>Duplizieren</button>
         <button type="button" className="wp-btn-quiet" disabled={pending}
-          onClick={() => run('Alle Antworten dieser Session löschen und zurück auf Entwurf setzen? Das lässt sich nicht rückgängig machen.', () => resetSession(id))}>
+          onClick={() => run('Session zurücksetzen? Alle Antworten und Teilnehmenden werden gelöscht, die Session steht wieder auf Entwurf. Fragen und vorbereitete Kategorien bleiben. Das lässt sich nicht rückgängig machen.', () => resetSession(id))}>
           Zurücksetzen
         </button>
         <button type="button" className="wp-btn-quiet" disabled={pending} onClick={() => run(null, () => setArchived(id, status !== 'archived'))}>
