@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { ResultView } from '@/components/results/ResultView'
 import { QrCode } from '@/components/QrCode'
 import { Logo } from '@/components/ui'
+import { QuizStage, QuizStatus } from '@/components/QuizStage'
 import type { Snapshot } from '@/lib/types'
 
 /**
@@ -35,6 +36,18 @@ export function Stage({ snap, joinUrl, joinLabel }: { snap: Snapshot; joinUrl: s
             </Center>
           ) : !q || snap.showQr ? (
             <Welcome snap={snap} joinUrl={joinUrl} host={host} />
+          ) : q.type === 'quiz' ? (
+            <>
+              {q.total > 1 ? <p className="stage-meta mb-[1.5cqh] text-white/60">Frage {q.number} von {q.total}</p> : null}
+              <QuizStage snap={snap} />
+            </>
+          ) : q.type === 'board' ? (
+            <>
+              <h1 className="stage-title max-w-[80cqw] !text-[clamp(18px,3.2cqw,64px)] [overflow-wrap:anywhere]">{q.title}</h1>
+              <div className="stage relative mt-[3cqh] min-h-0 flex-1">
+                <ResultView question={q} results={snap.results} />
+              </div>
+            </>
           ) : (
             <>
               {q.total > 1 ? <p className="stage-meta text-white/60">Frage {q.number} von {q.total}</p> : null}
@@ -54,9 +67,9 @@ export function Stage({ snap, joinUrl, joinLabel }: { snap: Snapshot; joinUrl: s
           )}
         </div>
 
-        {q && !ended && !snap.showQr ? (
+        {q && q.type !== 'board' && !ended && !snap.showQr ? (
           <footer className="stage-sub mt-[3cqh] flex items-center gap-[1cqw] text-white/60">
-            <span>{snap.votingOpen ? 'Abstimmung läuft' : 'Abstimmung geschlossen'}</span>
+            {q.type === 'quiz' ? <QuizStatus snap={snap} /> : <span>{snap.votingOpen ? 'Abstimmung läuft' : 'Abstimmung geschlossen'}</span>}
             <span aria-hidden>·</span>
             <span>{snap.responses} {snap.responses === 1 ? 'Antwort' : 'Antworten'}</span>
           </footer>

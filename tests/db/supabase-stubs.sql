@@ -30,3 +30,10 @@ create function realtime.send(payload jsonb, event text, topic text, private boo
 language sql security definer as $$
   insert into realtime.messages (topic, event, payload, private) values (topic, event, payload, private)
 $$;
+
+create schema storage;
+grant usage on schema storage to anon, authenticated, service_role;
+create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
+create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
+alter table storage.objects enable row level security;
+grant all on storage.objects to anon, authenticated, service_role;

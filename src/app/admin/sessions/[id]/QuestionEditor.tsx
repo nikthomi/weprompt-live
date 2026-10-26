@@ -3,7 +3,9 @@
 import { useId, useState, useTransition } from 'react'
 import { Notice } from '@/components/ui'
 import type { ChoiceOption, Question, QuestionConfig } from '@/lib/types'
+import { BoardEditor } from '@/components/board/BoardEditor'
 import { deleteQuestion, saveQuestion, setQuestionEnabled } from '../../actions'
+import { QuizImage } from './QuizImage'
 
 const newOptionId = () => Math.random().toString(36).slice(2, 8)
 
@@ -47,6 +49,28 @@ export function QuestionEditor({ question, responses }: { question: Question; re
         </div>
       ) : null}
       {question.type === 'yesno' ? <p className="wp-hint">Antwortmöglichkeiten: Ja und Nein.</p> : null}
+      {question.type === 'quiz' ? (
+        <div className="flex flex-col gap-6">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="wp-field max-w-[260px]">
+              <label htmlFor={`c-${question.id}`}>Richtige Antwort</label>
+              <select id={`c-${question.id}`} className="wp-input cursor-pointer" value={config.correct ?? 'yes'} onChange={e => set({ correct: e.target.value as 'yes' | 'no' })}>
+                <option value="yes">Richtig</option>
+                <option value="no">Falsch</option>
+              </select>
+            </div>
+            <NumberSelect label="Zeit zum Antworten" value={config.seconds ?? 20} options={[10, 20, 30, 60, 0]}
+              format={n => (n ? `${n} Sekunden` : 'Ohne Timer')} onChange={v => set({ seconds: v })} />
+          </div>
+          <QuizImage questionId={question.id} url={config.imageUrl} onChange={imageUrl => set({ imageUrl })} />
+        </div>
+      ) : null}
+      {question.type === 'board' ? (
+        <div className="flex flex-col gap-3">
+          <p className="wp-hint">Hier kannst du Kategorien und Begriffe schon vorbereiten. Während des Workshops bearbeitest du die Leinwand unter «Live steuern»; der Beamer zeigt jede Änderung sofort.</p>
+          <BoardEditor questionId={question.id} />
+        </div>
+      ) : null}
 
       {responses > 0 && (question.type === 'choice' || question.type === 'scale') ? (
         <Notice tone="info">Diese Frage hat schon {responses} {responses === 1 ? 'Antwort' : 'Antworten'}. Entfernte Optionen fehlen danach in der Auswertung.</Notice>
@@ -75,6 +99,8 @@ const PLACEHOLDER: Record<Question['type'], string> = {
   yesno: 'Hast du heute bereits KI verwendet?',
   scale: 'Wie sicher fühlst du dich im Umgang mit KI?',
   open: 'Was ist deine grösste Herausforderung beim Einsatz von KI?',
+  quiz: 'Foto oder KI?',
+  board: 'Wo siehst du Chancen und Risiken von KI?',
 }
 
 function ChoiceConfig({ config, set }: { config: QuestionConfig; set: (p: Partial<QuestionConfig>) => void }) {

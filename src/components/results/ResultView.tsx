@@ -1,6 +1,8 @@
 import type { PublicQuestion, Results } from '@/lib/types'
 import { optionsOf } from '@/lib/types'
+import { BoardCanvas } from '@/components/board/BoardCanvas'
 import { AnswerCards } from './AnswerCards'
+import { QuizTiles } from './Quiz'
 import { Bars } from './Bars'
 import { Scale } from './Scale'
 import { WordCloud } from './WordCloud'
@@ -8,6 +10,14 @@ import { YesNo } from './YesNo'
 
 /** Ergebnis einer Frage auf violettem Grund. Füllt den umgebenden Container (.stage). */
 export function ResultView({ question, results }: { question: Pick<PublicQuestion, 'type' | 'config'>; results: Results | null }) {
+  if (question.type === 'board') return <BoardCanvas items={results?.type === 'board' ? results.items : []} />
+  if (question.type === 'quiz' && results?.type === 'quiz') {
+    return (
+      <div className="flex h-full flex-col justify-center">
+        <QuizTiles counts={results.counts} respondents={results.respondents} correct={question.config.correct} />
+      </div>
+    )
+  }
   if (!results || results.respondents === 0) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -34,5 +44,7 @@ export function ResultView({ question, results }: { question: Pick<PublicQuestio
       return <WordCloud words={results.words} />
     case 'open':
       return <AnswerCards items={results.items} />
+    default:
+      return null
   }
 }

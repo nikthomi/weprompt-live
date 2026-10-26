@@ -1,13 +1,15 @@
 import { notFound } from 'next/navigation'
 import { Stage } from '@/components/Stage'
 import type { Snapshot } from '@/lib/types'
+import { DEMO_BOARD, serverTime } from '../board-demo'
 
 /** Nur in der Entwicklung: alle Bühnen-Zustände mit Beispieldaten, ohne Datenbank. */
 export default function Preview() {
   if (process.env.NODE_ENV === 'production') notFound()
+  const now = serverTime()
   const base: Omit<Snapshot, 'question' | 'results'> = {
     sessionId: '00000000-0000-4000-8000-000000000000', code: 'K7M2QX', title: 'KI BASIC – Spiez', status: 'live',
-    votingOpen: true, resultsVisible: true, showQr: false, version: 1, participants: 23, responses: 21,
+    votingOpen: true, resultsVisible: true, showQr: false, reveal: false, deadline: null, serverNow: 0, version: 1, participants: 23, responses: 21,
   }
   const q = (type: Snapshot['question'] extends infer T ? T extends { type: infer U } ? U : never : never, title: string, config = {}) =>
     ({ id: crypto.randomUUID(), type, title, description: null, config, number: 1, total: 4 })
@@ -20,6 +22,9 @@ export default function Preview() {
     { label: 'Ja/Nein', snap: { ...base, question: q('yesno', 'Hast du heute bereits KI verwendet?'), results: { type: 'yesno', respondents: 21, counts: { yes: 13, no: 8 } } } },
     { label: 'Skala', snap: { ...base, question: q('scale', 'Wie sicher fühlst du dich im Umgang mit KI?', { min: 1, max: 5, minLabel: 'unsicher', maxLabel: 'sehr sicher' }), results: { type: 'scale', respondents: 21, distribution: { 1: 2, 2: 5, 3: 8, 4: 4, 5: 2 }, average: 2.95 } } },
     { label: 'Offene Frage', snap: { ...base, question: q('open', 'Was ist deine grösste Herausforderung beim Einsatz von KI?'), results: { type: 'open', respondents: 7, items: ['Die richtigen Prompts finden', 'Datenschutz im Unternehmen klären', 'Zeit, um es auszuprobieren', 'Ich weiss nicht, welchem Tool ich trauen kann', 'Ergebnisse prüfen', 'Team mitnehmen', 'Halluzinationen erkennen und vermeiden, besonders bei Fakten und Zahlen'].map((t, i) => ({ id: String(i), text: t, status: 'visible' as const, at: '' })) } } },
+    { label: 'Quiz läuft', snap: { ...base, deadline: now + 14_000, serverNow: now, question: q('quiz', 'Foto oder KI?', { seconds: 20, imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200' }), results: null } },
+    { label: 'Quiz aufgelöst', snap: { ...base, reveal: true, votingOpen: false, question: q('quiz', 'Foto oder KI?', { correct: 'no', seconds: 20, imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200' }), results: { type: 'quiz', respondents: 21, counts: { yes: 8, no: 13 } } } },
+    { label: 'Manuelle Wortwolke', snap: { ...base, question: q('board', 'Wo siehst du Chancen und Risiken von KI?'), results: { type: 'board', respondents: 0, items: DEMO_BOARD } } },
     { label: 'Ergebnisse ausgeblendet', snap: { ...base, resultsVisible: false, question: q('yesno', 'Hast du heute bereits KI verwendet?'), results: null } },
     { label: 'Beendet', snap: { ...base, status: 'ended', question: null, results: null } },
   ]

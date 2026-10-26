@@ -1,10 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCountdown } from '@/lib/clock'
 import { Logo } from '@/components/ui'
 import { anonClient } from '@/lib/supabase/browser'
 import { useLiveChannel } from '@/lib/realtime'
-import { hasAnswered, participantId, rememberAnswered } from '@/lib/participant'
+import { hasAnswered, participantId, recordQuizResult, rememberAnswered, scoreFrom, storedAnswer, useStoredQuiz } from '@/lib/participant'
 import { optionsOf, type AnswerValue, type JoinState, type PublicQuestion, type PublicState } from '@/lib/types'
 
 export function Participant({ code, initial }: { code: string; initial: JoinState }) {
@@ -15,10 +16,14 @@ export function Participant({ code, initial }: { code: string; initial: JoinStat
   const apply = useCallback((next: PublicState, answered?: boolean) => {
     if (next.version < version.current) return // verspätete Meldung
     version.current = next.version
-    setState(prev => ({
-      ...next,
-      answered: answered ?? (next.question ? (next.question.id === prev.question?.id ? prev.answered : hasAnswered(code, next.question.id)) : false),
-    }))
+    setState(prev => {
+      const same = next.question?.id === prev.question?.id
+      return {
+        ...next,
+        answered: answered ?? (next.question ? (same ? prev.answered : hasAnswered(code, next.question.id)) : false),
+        myAnswer: same ? prev.myAnswer : next.question ? (storedAnswer(code, next.question.id) as AnswerValue | undefined) ?? null : null,
+      }
+    })
   }, [code])
 
   const refresh = useCallback(async (jitter = false) => {
@@ -31,6 +36,10 @@ export function Participant({ code, initial }: { code: string; initial: JoinStat
       const local = data.question ? hasAnswered(code, data.question.id) : false
       version.current = Math.min(version.current, data.version) // Server ist massgebend
       apply(data, data.answered || local)
+      if (data.question && data.myAnswer) {
+        const mine = data.myAnswer
+        setState(s => (s.question?.id === data.question!.id ? { ...s, myAnswer: mine } : s))
+      }
     } catch { /* offline: der nächste Versuch kommt automatisch */ }
   }, [code, apply])
 
@@ -46,9 +55,9 @@ export function Participant({ code, initial }: { code: string; initial: JoinStat
     onResync: () => refresh(true),
   })
 
-  const markAnswered = useCallback((questionId: string) => {
-    rememberAnswered(code, questionId)
-    setState(s => (s.question?.id === questionId ? { ...s, answered: true } : s))
+  const markAnswered = useCallback((questionId: string, value: AnswerValue) => {
+    rememberAnswered(code, questionId, value)
+    setState(s => (s.question?.id === questionId ? { ...s, answered: true, myAnswer: value } : s))
   }, [code])
 
   return (
@@ -71,15 +80,24 @@ function Screen({ state, code, pid, onAnswered, onClosed }: {
   state: JoinState
   code: string
   pid: React.RefObject<string | null>
-  onAnswered: (questionId: string) => void
+  onAnswered: (questionId: string, value: AnswerValue) => void
   onClosed: () => void
 }) {
-  if (state.status === 'ended' || state.status === 'archived') {
-    return <Message title="Danke fürs Mitmachen!">Die Session ist beendet. Du kannst dieses Fenster schliessen.</Message>
-  }
+  if (state.status === 'ended' || state.status === 'archived') return <Ended code={code} />
   const q = state.question
   if (!q) {
     return <Message title="Gleich geht's los.">Warte auf die nächste Frage.</Message>
+  }
+  if (q.type === 'board') {
+    return (
+      <>
+        <QuestionHead q={q} />
+        <Message title="Schau auf die Leinwand.">Nenne deine Begriffe laut. Die Kursleitung schreibt sie auf und ordnet sie.</Message>
+      </>
+    )
+  }
+  if (q.type === 'quiz') {
+    return <QuizScreen key={q.id} state={state} q={q} code={code} pid={pid} onAnswered={onAnswered} onClosed={onClosed} />
   }
   if (state.answered) {
     return <Message title="Danke! Deine Antwort wurde gespeichert.">Die nächste Frage erscheint hier automatisch.</Message>
@@ -123,7 +141,7 @@ function AnswerForm({ q, code, pid, onAnswered, onClosed }: {
   q: PublicQuestion
   code: string
   pid: React.RefObject<string | null>
-  onAnswered: (questionId: string) => void
+  onAnswered: (questionId: string, value: AnswerValue) => void
   onClosed: () => void
 }) {
   const [value, setValue] = useState<AnswerValue | null>(null)
@@ -141,7 +159,7 @@ function AnswerForm({ q, code, pid, onAnswered, onClosed }: {
         body: JSON.stringify({ questionId: q.id, participantId: pid.current ?? participantId(code), value }),
       })
       const data = await res.json().catch(() => ({}))
-      if (res.ok) return onAnswered(q.id)
+      if (res.ok) return onAnswered(q.id, value)
       setError(data.message ?? 'Das hat nicht geklappt. Bitte nochmals senden.')
       if (res.status === 409 || res.status === 404) onClosed()
     } catch {
@@ -279,5 +297,119 @@ function OpenInput({ q, onChange }: { q: PublicQuestion; onChange: (v: AnswerVal
       </div>
       {q.config.moderation ? <p className="t-small mt-3">Antworten erscheinen nach Freigabe durch die Kursleitung.</p> : null}
     </div>
+  )
+}
+
+/**
+ * Quiz: zwei grosse Kacheln, ein Tipp sendet sofort. Nach der Auflösung
+ * persönliches Ergebnis und Bilanz dieses Geräts.
+ */
+function QuizScreen({ state, q, code, pid, onAnswered, onClosed }: {
+  state: JoinState
+  q: PublicQuestion
+  code: string
+  pid: React.RefObject<string | null>
+  onAnswered: (questionId: string, value: AnswerValue) => void
+  onClosed: () => void
+}) {
+  const left = useCountdown(state.reveal ? null : state.deadline, state.serverNow)
+  const [sending, setSending] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const mine = state.myAnswer && 'options' in state.myAnswer ? state.myAnswer.options[0] : null
+  const label = (id: string | null | undefined) => (id === 'yes' ? 'Richtig' : id === 'no' ? 'Falsch' : '')
+  const timeUp = left === 0 || !state.votingOpen
+
+  const correct = state.reveal ? q.config.correct : undefined
+  const stored = useStoredQuiz(code)
+  useEffect(() => {
+    if (correct && mine) recordQuizResult(code, q.id, mine === correct)
+  }, [correct, mine, code, q.id])
+
+  async function answer(id: 'yes' | 'no') {
+    if (sending || mine) return
+    setSending(id)
+    setError(null)
+    const value = { options: [id] }
+    try {
+      const res = await fetch('/api/answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionId: q.id, participantId: pid.current ?? participantId(code), value }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) return onAnswered(q.id, value)
+      setError(res.status === 409 ? 'Die Zeit ist abgelaufen.' : data.message ?? 'Das hat nicht geklappt. Tipp nochmals.')
+      if (res.status === 409 || res.status === 404) onClosed()
+    } catch {
+      setError('Keine Verbindung. Prüfe dein Internet und tipp nochmals.')
+    } finally {
+      setSending(null)
+    }
+  }
+
+  const head = (
+    <div className="mb-8">
+      <div className="flex items-baseline justify-between gap-4">
+        {q.total > 1 ? <p className="t-small text-white/60">Frage {q.number} von {q.total}</p> : <span />}
+        {left !== null && left > 0 && !mine ? <p className="t-small tabular-nums text-white/80" role="timer">Noch {Math.ceil(left)} s</p> : null}
+      </div>
+      <h1 className="t-h2 mt-3 text-white [overflow-wrap:anywhere]">{q.title}</h1>
+      {q.config.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={q.config.imageUrl} alt="" className="mt-6 max-h-[38vh] w-full rounded-[var(--radius-card)] object-contain" />
+      ) : null}
+    </div>
+  )
+
+  if (correct) {
+    const score = stored === null ? { right: 0, total: 0 } : scoreFrom(stored, mine ? { id: q.id, correct: mine === correct } : undefined)
+    return (
+      <>
+        {head}
+        <Message title={!mine ? 'Keine Antwort abgegeben.' : mine === correct ? 'Richtig!' : 'Leider falsch.'}>
+          {`Die richtige Antwort ist «${label(correct)}».`}
+          {score.total ? ` Bisher hast du ${score.right} von ${score.total} richtig.` : ''}
+        </Message>
+      </>
+    )
+  }
+  if (mine) {
+    return (
+      <>
+        {head}
+        <Message title={`Deine Antwort: ${label(mine)}`}>Gleich kommt die Auflösung.</Message>
+      </>
+    )
+  }
+  if (timeUp) {
+    return (
+      <>
+        {head}
+        <Message title="Die Zeit ist abgelaufen.">Gleich kommt die Auflösung.</Message>
+      </>
+    )
+  }
+  return (
+    <>
+      {head}
+      <div className="grid grid-cols-2 gap-3" role="group" aria-label="Antwort wählen">
+        {(['yes', 'no'] as const).map(id => (
+          <button key={id} type="button" className="choice-tile min-h-[120px] justify-center text-center !text-[26px]"
+            disabled={Boolean(sending)} aria-busy={sending === id} onClick={() => answer(id)}>
+            {sending === id ? '…' : label(id)}
+          </button>
+        ))}
+      </div>
+      {error ? <p role="alert" className="t-body mt-6 rounded-[16px] bg-white px-4 py-3 text-black ring-2 ring-coral">{error}</p> : null}
+    </>
+  )
+}
+
+function Ended({ code }: { code: string }) {
+  const score = scoreFrom(useStoredQuiz(code))
+  return (
+    <Message title="Danke fürs Mitmachen!">
+      {score.total ? `Im Quiz hattest du ${score.right} von ${score.total} richtig. ` : ''}Die Session ist beendet. Du kannst dieses Fenster schliessen.
+    </Message>
   )
 }

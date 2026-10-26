@@ -4,13 +4,15 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { Stage } from '@/components/Stage'
+import { BoardEditor } from '@/components/board/BoardEditor'
+import { useCountdown } from '@/lib/clock'
 import { ExportPng, pngName } from '@/components/ExportPng'
 import { StatusTag } from '@/components/StatusTag'
 import { createClient } from '@/lib/supabase/browser'
 import { throttle, useLiveChannel } from '@/lib/realtime'
 import { typeLabel, type OpenItem, type Question, type Session, type Snapshot, type WordResult } from '@/lib/types'
 
-type Patch = Partial<Pick<Session, 'status' | 'current_question_id' | 'voting_open' | 'results_visible' | 'show_qr'>>
+type Patch = Partial<Pick<Session, 'status' | 'current_question_id' | 'voting_open' | 'results_visible' | 'show_qr'>> & { reveal?: boolean }
 
 export function LiveControl({ session, questions, initial, joinUrl, joinLabel, presentUrl }: {
   session: Session
@@ -57,6 +59,20 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
 
   const index = questions.findIndex(q => q.id === snap.question?.id)
   const isLive = snap.status === 'live'
+  const qType = snap.question?.type
+  const isQuiz = qType === 'quiz'
+  const isBoard = qType === 'board'
+
+  // Quiz: bei Zeitablauf automatisch auflösen.
+  const left = useCountdown(isQuiz && !snap.reveal ? snap.deadline : null, snap.serverNow)
+  const autoRevealed = useRef<string | null>(null)
+  useEffect(() => {
+    if (!isQuiz || snap.reveal || left !== 0 || !snap.question) return
+    if (autoRevealed.current === `${snap.question.id}:${snap.deadline}`) return
+    autoRevealed.current = `${snap.question.id}:${snap.deadline}`
+    const t = setTimeout(() => update({ reveal: true }), 400)
+    return () => clearTimeout(t)
+  }, [isQuiz, snap.reveal, left, snap.question, snap.deadline, update])
 
   const activate = useCallback((q: Question) => update({
     status: 'live', current_question_id: q.id, voting_open: true, results_visible: session.auto_show_results, show_qr: false,
@@ -76,16 +92,16 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
-      if (t.closest('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey || !isLive) return
+      if (t.closest('input, textarea, select, [contenteditable], [data-board]') || e.metaKey || e.ctrlKey || e.altKey || !isLive) return
       if (e.key === 'ArrowRight') { e.preventDefault(); next() }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); prev() }
       else if (snap.question && (e.key === 'o' || e.key === 'O')) update({ voting_open: !snap.votingOpen })
-      else if (snap.question && (e.key === 'e' || e.key === 'E')) update({ results_visible: !snap.resultsVisible })
+      else if (snap.question && (e.key === 'e' || e.key === 'E')) update(isQuiz ? { reveal: true } : { results_visible: !snap.resultsVisible })
       else if (e.key === 'q' || e.key === 'Q') update({ show_qr: !snap.showQr })
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [isLive, next, prev, update, snap.question, snap.votingOpen, snap.resultsVisible, snap.showQr])
+  }, [isLive, isQuiz, next, prev, update, snap.question, snap.votingOpen, snap.resultsVisible, snap.showQr])
 
   return (
     <div className="flex flex-col gap-6">
@@ -154,12 +170,16 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
               )}
             </div>
             <div className="flex flex-wrap gap-x-8 gap-y-3 border-t border-mist pt-5">
-              <Switch on={snap.votingOpen} disabled={pending || !snap.question} onClick={() => update({ voting_open: !snap.votingOpen })} keys="O">
-                Abstimmung offen
-              </Switch>
-              <Switch on={snap.resultsVisible} disabled={pending || !snap.question} onClick={() => update({ results_visible: !snap.resultsVisible })} keys="E">
-                Ergebnisse auf dem Beamer
-              </Switch>
+              {isBoard ? null : (
+                <Switch on={snap.votingOpen && left !== 0} disabled={pending || !snap.question} onClick={() => update({ voting_open: !(snap.votingOpen && left !== 0) })} keys="O">
+                  {isQuiz ? 'Abstimmung offen (startet den Timer neu)' : 'Abstimmung offen'}
+                </Switch>
+              )}
+              {isQuiz || isBoard ? null : (
+                <Switch on={snap.resultsVisible} disabled={pending || !snap.question} onClick={() => update({ results_visible: !snap.resultsVisible })} keys="E">
+                  Ergebnisse auf dem Beamer
+                </Switch>
+              )}
               <Switch on={snap.showQr} disabled={pending || !isLive} onClick={() => update({ show_qr: !snap.showQr })} keys="Q">
                 QR-Code auf dem Beamer
               </Switch>
@@ -169,10 +189,30 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
                 {snap.status === 'ended' ? 'Die Session ist beendet.' : 'Starte die Session: Der Beamer zeigt dann den QR-Code, und Teilnehmende können beitreten.'}
               </p>
             ) : null}
-            <p className="t-small text-gray">Tastatur: ← → Fragen wechseln · O Abstimmung · E Ergebnisse · Q QR-Code</p>
+            {isQuiz && isLive ? (
+              <div className="flex flex-wrap items-center gap-4 border-t border-mist pt-5">
+                <p className="font-[family-name:var(--font-brand)] text-[16px] font-semibold tabular-nums" aria-live="polite">
+                  {snap.reveal ? 'Aufgelöst' : left !== null && left > 0 ? `Noch ${Math.ceil(left)} s` : left === 0 ? 'Zeit abgelaufen' : 'Ohne Timer'}
+                  {' · '}{snap.responses} {snap.responses === 1 ? 'Antwort' : 'Antworten'}
+                </p>
+                {snap.reveal ? null : (
+                  <button type="button" className="wp-btn-quiet" disabled={pending} onClick={() => update({ reveal: true })} aria-keyshortcuts="E">Jetzt auflösen</button>
+                )}
+              </div>
+            ) : null}
+            <p className="t-small text-gray">
+              Tastatur: ← → Fragen wechseln · O Abstimmung · {isQuiz ? 'E Auflösen' : 'E Ergebnisse'} · Q QR-Code
+            </p>
           </div>
 
-          <div className="panel !p-3">
+          {isBoard && snap.question ? (
+            <div className="panel">
+              <p className="wp-label mb-3">Leinwand – erscheint genau so auf dem Beamer</p>
+              <BoardEditor key={snap.question.id} questionId={snap.question.id} />
+            </div>
+          ) : null}
+
+          <div className={`panel !p-3 ${isBoard ? 'hidden' : ''}`}>
             <div className="flex items-center justify-between gap-3 px-2 pb-3 pt-1">
               <p className="wp-label">So sieht es auf dem Beamer aus</p>
               {snap.question ? <ExportPng target={stageRef} filename={pngName(session.title, `frage-${index + 1}`)} /> : null}

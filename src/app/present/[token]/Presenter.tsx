@@ -39,7 +39,6 @@ export function Presenter({ token, initial, joinUrl, joinLabel }: { token: strin
         setSnap(prev => (st.version < prev.version ? prev : {
           ...prev, ...st,
           ...(st.question?.id !== prev.question?.id ? { results: null, responses: 0 } : {}),
-          ...(!st.resultsVisible ? { results: null } : {}),
         }))
         load()
       },

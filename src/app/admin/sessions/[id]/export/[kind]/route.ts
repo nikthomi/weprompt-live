@@ -44,9 +44,23 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
       const r = byId.get(q.id)
       const n = r?.respondents ?? 0
       const base = [i + 1, q.title, typeLabel(q.type)]
+      if (r?.type === 'board') {
+        // Begriffe mit ihrer Kategorie (Kategorie = Fläche, in der der Begriff liegt).
+        const cats = r.items.filter(it => it.kind === 'category')
+        const words = r.items.filter(it => it.kind === 'word')
+        if (!words.length) rows.push([...base, '(keine Begriffe)', 0, '', ''])
+        for (const w of words) {
+          const cat = cats.find(c => c.w !== null && c.h !== null && w.x >= c.x && w.x <= c.x + c.w && w.y >= c.y && w.y <= c.y + c.h)
+          rows.push([...base, cat ? `${cat.text}: ${w.text}` : w.text, 1, '', ''])
+        }
+        return
+      }
       if (!r || n === 0) { rows.push([...base, '(keine Antworten)', 0, '', 0]); return }
-      if (r.type === 'choice' || r.type === 'yesno') {
-        for (const o of optionsOf(q.type, q.config)) rows.push([...base, o.label, r.counts[o.id] ?? 0, `${pct(r.counts[o.id] ?? 0, n)}%`, n])
+      if (r.type === 'choice' || r.type === 'yesno' || r.type === 'quiz') {
+        for (const o of optionsOf(q.type, q.config)) {
+          const mark = q.type === 'quiz' && q.config.correct === o.id ? ' (richtige Antwort)' : ''
+          rows.push([...base, o.label + mark, r.counts[o.id] ?? 0, `${pct(r.counts[o.id] ?? 0, n)}%`, n])
+        }
       } else if (r.type === 'scale') {
         for (let v = q.config.min ?? 1; v <= (q.config.max ?? 5); v++) rows.push([...base, v, r.distribution[v] ?? 0, `${pct(r.distribution[v] ?? 0, n)}%`, n])
         rows.push([...base, 'Durchschnitt', r.average === null ? '' : Number(r.average).toFixed(2), '', n])
