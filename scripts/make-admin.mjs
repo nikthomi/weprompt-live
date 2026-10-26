@@ -1,5 +1,5 @@
 // Erste Admin-Person für WePrompt Live anlegen bzw. befördern.
-// Aufruf: npm run admin -- info@deeds.ch
+// Aufruf: npm run admin -- info@weprompt.ch
 // Danach auf /passwort-vergessen die Adresse eingeben: Es kommt ein Link zum Passwort.
 import { createClient } from '@supabase/supabase-js'
 

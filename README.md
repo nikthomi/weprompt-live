@@ -108,7 +108,7 @@ In einem von fünf Läufen schlug eine einzelne Wiederholung mit HTTP 500 fehl (
 
 1. **Datenbank:** `supabase/migrations/20261023100000_live.sql` im SQL-Editor des WePrompt-Supabase-Projekts ausführen (am 23.10.2026 erledigt).
 2. **Umgebung:** `.env.example` nach `.env.local` kopieren und ausfüllen (gleiche Supabase-Werte wie Anmelde-Tool/Kursportal).
-3. **Erste Admin-Person:** `npm run admin -- info@deeds.ch` – legt das Konto an (falls nötig), macht es zum Admin und gibt einen Link zum Passwortsetzen aus (1 Stunde gültig). Weitere Personen danach im Admin unter «Team»; sie setzen ihr Passwort über «Passwort vergessen».
+3. **Erste Admin-Person:** `npm run admin -- info@weprompt.ch` – legt das Konto an (falls nötig), macht es zum Admin und gibt einen Link zum Passwortsetzen aus (1 Stunde gültig). Weitere Personen danach im Admin unter «Team»; sie setzen ihr Passwort über «Passwort vergessen».
 4. **Lokal:** `npm install && npm run dev` (Port 3000). `/dev/vorschau` zeigt alle Beamer-Zustände mit Beispieldaten (nur Entwicklung).
 
 ### Vercel und Domain
