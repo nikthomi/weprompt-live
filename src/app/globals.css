@@ -151,20 +151,20 @@ textarea.wp-input { resize: vertical; min-height: 90px; }
 
 /* Grosse Auswahlflächen auf dem Handy */
 .choice-tile {
-  display: flex; align-items: center; gap: 14px; width: 100%; min-height: 60px; padding: 14px 18px;
+  display: flex; align-items: center; gap: 14px; width: 100%; min-height: 58px; padding: 14px 20px;
   border-radius: var(--radius-card); background: var(--color-white); color: var(--color-black);
   border: 2.5px solid transparent; text-align: left; font-family: var(--font-brand); font-weight: 600;
   font-size: 19px; line-height: 24px; cursor: pointer; transition: border-color .15s, background .15s, transform .1s;
 }
 .choice-tile:active { transform: scale(.985); }
-.choice-tile[aria-checked="true"], .choice-tile[aria-pressed="true"] { border-color: var(--color-black); background: var(--color-amber); }
+.choice-tile[aria-checked="true"], .choice-tile[aria-pressed="true"] { border-color: var(--color-black); }
 .choice-mark {
   flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid var(--color-black);
   display: inline-flex; align-items: center; justify-content: center;
 }
 .choice-mark.square { border-radius: 8px; }
 .choice-tile[aria-checked="true"] .choice-mark { background: var(--color-black); }
-.choice-tile[aria-checked="true"] .choice-mark::after { content: ""; width: 10px; height: 10px; border-radius: inherit; background: var(--color-amber); }
+.choice-tile[aria-checked="true"] .choice-mark::after { content: ""; width: 10px; height: 10px; border-radius: inherit; background: var(--color-white); }
 
 /* Admin: Panels auf mist */
 .panel { background: var(--color-white); border-radius: var(--radius-card); padding: 22px; }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { Logo, Sparkle } from '@/components/ui'
+import { Logo } from '@/components/ui'
 import { anonClient } from '@/lib/supabase/browser'
 import { useLiveChannel } from '@/lib/realtime'
 import { hasAnswered, participantId, rememberAnswered } from '@/lib/participant'
@@ -52,12 +52,12 @@ export function Participant({ code, initial }: { code: string; initial: JoinStat
   }, [code])
 
   return (
-    <main className="on-violett flex min-h-dvh flex-col px-4 pb-8 pt-5">
+    <main className="on-violett flex min-h-dvh flex-col px-6 pb-10 pt-6">
       <header className="mx-auto flex w-full max-w-[560px] items-center justify-between gap-4">
-        <Logo tone="weiss" className="h-6 w-auto" />
-        <p className="t-small min-w-0 truncate text-right text-white/85">{state.title}</p>
+        <Logo tone="weiss" className="h-5 w-auto opacity-90" />
+        <p className="t-small min-w-0 truncate text-right text-white/60">{state.title}</p>
       </header>
-      <div className="mx-auto flex w-full max-w-[560px] flex-1 flex-col pt-8">
+      <div className="mx-auto flex w-full max-w-[560px] flex-1 flex-col pt-14">
         <Screen state={state} code={code} pid={pid} onAnswered={markAnswered} onClosed={() => refresh()} />
       </div>
       {connection === 'offline' ? (
@@ -79,16 +79,16 @@ function Screen({ state, code, pid, onAnswered, onClosed }: {
   }
   const q = state.question
   if (!q) {
-    return <Message title="Gleich geht's los." waiting>Warte auf die nächste Frage.</Message>
+    return <Message title="Gleich geht's los.">Warte auf die nächste Frage.</Message>
   }
   if (state.answered) {
-    return <Message title="Danke! Deine Antwort wurde gespeichert." waiting>Die nächste Frage erscheint hier automatisch.</Message>
+    return <Message title="Danke! Deine Antwort wurde gespeichert.">Die nächste Frage erscheint hier automatisch.</Message>
   }
   if (!state.votingOpen) {
     return (
       <>
         <QuestionHead q={q} />
-        <Message title="Die Abstimmung ist geschlossen." waiting>Warte auf die nächste Frage.</Message>
+        <Message title="Die Abstimmung ist geschlossen.">Warte auf die nächste Frage.</Message>
       </>
     )
   }
@@ -102,26 +102,19 @@ function Screen({ state, code, pid, onAnswered, onClosed }: {
 
 function QuestionHead({ q }: { q: PublicQuestion }) {
   return (
-    <div className="mb-7">
-      {q.total > 1 ? <p className="t-caption text-white/80">Frage {q.number} von {q.total}</p> : null}
-      <h1 className="t-h2 mt-2 text-white [overflow-wrap:anywhere]">{q.title}</h1>
-      {q.description ? <p className="t-body mt-3 text-white/90">{q.description}</p> : null}
+    <div className="mb-10">
+      {q.total > 1 ? <p className="t-small text-white/60">Frage {q.number} von {q.total}</p> : null}
+      <h1 className="t-h2 mt-3 text-white [overflow-wrap:anywhere]">{q.title}</h1>
+      {q.description ? <p className="t-body mt-3 text-white/75">{q.description}</p> : null}
     </div>
   )
 }
 
-function Message({ title, children, waiting = false }: { title: string; children: ReactNode; waiting?: boolean }) {
+function Message({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="wp-rise mt-4 flex items-end gap-3" role="status">
-      <span className="wp-avatar" aria-hidden>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/bildmarke-schwarz.svg" alt="" />
-      </span>
-      <div className="wp-bubble wp-bubble-brand min-w-0 flex-1 pb-6">
-        <p className="t-h3">{title}</p>
-        <p className="t-body mt-2">{children}</p>
-        {waiting ? <Sparkle className="wp-pulse mt-4 h-6 w-6 text-black" /> : null}
-      </div>
+    <div className="wp-fade" role="status">
+      <p className="t-h3 text-white">{title}</p>
+      <p className="t-body mt-3 text-white/70">{children}</p>
     </div>
   )
 }
@@ -167,7 +160,7 @@ function AnswerForm({ q, code, pid, onAnswered, onClosed }: {
         {q.type === 'open' ? <OpenInput q={q} onChange={setValue} /> : null}
       </div>
       {error ? <p role="alert" className="t-body mt-6 rounded-[16px] bg-white px-4 py-3 text-black ring-2 ring-coral">{error}</p> : null}
-      <div className="mt-6">
+      <div className="mt-8">
         <button type="submit" className="wp-btn wp-btn-primary wp-btn-block min-h-[58px]" disabled={!value || sending} aria-busy={sending}>
           {sending ? 'Wird gesendet …' : 'Antwort senden'}
         </button>
@@ -194,7 +187,7 @@ function ChoiceInput({ q, onChange }: { q: PublicQuestion; onChange: (v: AnswerV
 
   return (
     <div>
-      {multiple ? <p className="t-small mb-3 text-white/85">{max < options.length ? `Wähle bis zu ${max} Antworten.` : 'Mehrere Antworten möglich.'}</p> : null}
+      {multiple ? <p className="t-small mb-4 text-white/60">{max < options.length ? `Wähle bis zu ${max} Antworten.` : 'Mehrere Antworten möglich.'}</p> : null}
       <div role={multiple ? 'group' : 'radiogroup'} aria-label="Antwortmöglichkeiten" className={q.type === 'yesno' ? 'grid grid-cols-2 gap-3' : 'flex flex-col gap-3'}>
         {options.map(o => (
           <button
@@ -236,7 +229,7 @@ function ScaleInput({ q, onChange }: { q: PublicQuestion; onChange: (v: AnswerVa
         ))}
       </div>
       {q.config.minLabel || q.config.maxLabel ? (
-        <div className="t-small mt-3 flex justify-between gap-4 text-white/90">
+        <div className="t-small mt-4 flex justify-between gap-4 text-white/60">
           <span>{min} = {q.config.minLabel || 'tief'}</span>
           <span className="text-right">{max} = {q.config.maxLabel || 'hoch'}</span>
         </div>
@@ -255,7 +248,7 @@ function WordsInput({ q, onChange }: { q: PublicQuestion; onChange: (v: AnswerVa
     onChange(filled.length ? { words: filled } : null)
   }
   return (
-    <div className="wp-bubble wp-bubble-brand flex flex-col gap-5 pb-6">
+    <div className="flex flex-col gap-6 rounded-[var(--radius-card)] bg-white px-5 pb-6 pt-5">
       <p className="t-small">{n > 1 ? `Bis zu ${n} Begriffe, je ein Begriff pro Feld.` : 'Ein Begriff.'}</p>
       {words.map((w, i) => (
         <div key={i} className="wp-field">
@@ -271,7 +264,7 @@ function OpenInput({ q, onChange }: { q: PublicQuestion; onChange: (v: AnswerVal
   const max = q.config.maxLength ?? 200
   const [text, setText] = useState('')
   return (
-    <div className="wp-bubble wp-bubble-brand pb-5">
+    <div className="rounded-[var(--radius-card)] bg-white px-5 pb-5 pt-5">
       <div className="wp-field">
         <label htmlFor="answer">Deine Antwort</label>
         <textarea

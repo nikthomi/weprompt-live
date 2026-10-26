@@ -7,8 +7,8 @@ import type { WordResult } from '@/lib/types'
 type CloudWord = cloud.Word & { key: string; color: string }
 type Placed = { key: string; text: string; size: number; x: number; y: number; color: string }
 
-// Markenfarben auf violett: weiss, amber, mist (coral bleibt Handlungsfarbe).
-const COLORS = ['#ffffff', '#f6ca70', '#f2f0ed']
+// Ruhig: alles weiss, nur der häufigste Begriff in amber.
+const colorFor = (rank: number) => (rank === 0 ? '#f6ca70' : '#ffffff')
 
 /** Deterministischer Zufall, damit das Layout bei jeder Aktualisierung ruhig bleibt. */
 function seeded(seed: number) {
@@ -59,7 +59,7 @@ export function WordCloud({ words }: { words: WordResult[] }) {
       const maxFont = base * 0.22 * scale
       const minFont = Math.max(12, base * 0.045 * scale)
       const input = visible.map((w, i) => ({
-        key: w.key, text: w.text, color: COLORS[i % COLORS.length],
+        key: w.key, text: w.text, color: colorFor(i),
         size: minFont + (maxFont - minFont) * Math.sqrt(w.count / maxCount),
       }))
       const next = cloud<CloudWord>()
