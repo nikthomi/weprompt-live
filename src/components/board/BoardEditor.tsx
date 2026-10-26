@@ -202,10 +202,14 @@ export function BoardEditor({ questionId, demo }: { questionId: string; demo?: B
                 <span className={CATEGORY_LABEL_CLASS}>{c.text}</span>
               )}
               <span
-                className="absolute bottom-0 right-0 h-[2.2cqw] min-h-4 w-[2.2cqw] min-w-4 cursor-nwse-resize touch-none rounded-br-[1.2cqw] border-b-2 border-r-2 border-white/60"
+                className="absolute bottom-[.5cqw] right-[.5cqw] flex h-[2.2cqw] min-h-4 w-[2.2cqw] min-w-4 cursor-nwse-resize touch-none items-end justify-end text-white/60 hover:text-white"
                 onPointerDown={e => start(e, c.id, 'resize')}
                 aria-hidden
-              />
+              >
+                <svg viewBox="0 0 10 10" className="h-full w-full" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+                  <path d="M9 3 3 9M9 6 6 9" />
+                </svg>
+              </span>
             </div>
           ))}
           {items.filter(i => i.kind === 'word').map(w => (
