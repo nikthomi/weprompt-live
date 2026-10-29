@@ -8,6 +8,7 @@ import { BoardEditor } from '@/components/board/BoardEditor'
 import { useCountdown } from '@/lib/clock'
 import { ExportPng, pngName } from '@/components/ExportPng'
 import { PresentationWindowButton } from '@/components/PresentationWindowButton'
+import { LaunchHint } from '@/components/LaunchHint'
 import { StatusTag } from '@/components/StatusTag'
 import { createClient } from '@/lib/supabase/browser'
 import { throttle, useLiveChannel } from '@/lib/realtime'
@@ -160,6 +161,7 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
         </div>
       </div>
 
+      <LaunchHint />
       {error ? <p role="alert" className="rounded-[16px] bg-white px-4 py-3 ring-2 ring-coral">{error}</p> : null}
 
       <div className="grid items-start gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
