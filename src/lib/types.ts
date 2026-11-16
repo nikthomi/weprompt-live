@@ -21,8 +21,9 @@ export type QuestionConfig = {
   maxLength?: number
   moderation?: boolean
   // quiz
-  correct?: 'yes' | 'no'
-  /** Eigene Beschriftung der beiden Antworten, z. B. «Echt» und «KI». */
+  /** Quiz: ID der richtigen Antwort (yes/no oder eine ID aus options). */
+  correct?: string
+  /** Ältere Quizfragen: Beschriftung der zwei Antworten yes/no, z. B. «Echt» und «KI». */
   labels?: { yes: string; no: string }
   seconds?: number
   imageUrl?: string
@@ -116,7 +117,7 @@ export const QUESTION_TYPES: { type: QuestionType; label: string; hint: string }
   { type: 'yesno', label: 'Ja/Nein', hint: 'Schnelle Abstimmung mit zwei Optionen.' },
   { type: 'scale', label: 'Skala', hint: 'Bewertung von 1 bis 5 oder 1 bis 10.' },
   { type: 'open', label: 'Offene Frage', hint: 'Kurze Textantworten als Karten.' },
-  { type: 'quiz', label: 'Quiz mit zwei Antworten', hint: 'Z. B. Richtig/Falsch oder Echt/KI, mit Bild, Timer und Auflösung.' },
+  { type: 'quiz', label: 'Quiz', hint: 'Wie Kahoot: 2 bis 6 Antworten, eine richtig. Mit Timer, Bild und Auflösung.' },
   { type: 'board', label: 'Manuelle Wortwolke', hint: 'Du schreibst Begriffe auf und ordnest sie in Kategorien.' },
 ]
 
@@ -128,7 +129,10 @@ export const QUIZ: ChoiceOption[] = [{ id: 'yes', label: 'Richtig' }, { id: 'no'
 /** Optionen einer Auswahlfrage (Ja/Nein hat feste Optionen). */
 export function optionsOf(type: QuestionType, config: QuestionConfig): ChoiceOption[] {
   if (type === 'yesno') return YES_NO
-  if (type === 'quiz') return [{ id: 'yes', label: config.labels?.yes || QUIZ[0].label }, { id: 'no', label: config.labels?.no || QUIZ[1].label }]
+  if (type === 'quiz') {
+    if (config.options && config.options.length >= 2) return config.options
+    return [{ id: 'yes', label: config.labels?.yes || QUIZ[0].label }, { id: 'no', label: config.labels?.no || QUIZ[1].label }]
+  }
   return config.options ?? []
 }
 
@@ -138,7 +142,7 @@ export function defaultConfig(type: QuestionType): QuestionConfig {
     case 'choice': return { options: [{ id: 'a', label: '' }, { id: 'b', label: '' }], multiple: false }
     case 'scale': return { min: 1, max: 5, minLabel: '', maxLabel: '' }
     case 'open': return { maxLength: 200, moderation: false }
-    case 'quiz': return { correct: 'yes', seconds: 20 }
+    case 'quiz': return { options: [{ id: 'a', label: '' }, { id: 'b', label: '' }, { id: 'c', label: '' }, { id: 'd', label: '' }], correct: 'a', seconds: 20 }
     default: return {}
   }
 }

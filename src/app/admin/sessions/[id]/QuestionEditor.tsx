@@ -2,7 +2,8 @@
 
 import { useId, useState, useTransition } from 'react'
 import { Notice } from '@/components/ui'
-import type { ChoiceOption, Question, QuestionConfig } from '@/lib/types'
+import { optionsOf, type ChoiceOption, type Question, type QuestionConfig } from '@/lib/types'
+import { LETTERS } from '@/components/results/Quiz'
 import { BoardEditor } from '@/components/board/BoardEditor'
 import { deleteQuestion, saveQuestion, setQuestionEnabled } from '../../actions'
 import { QuizImage } from './QuizImage'
@@ -12,7 +13,10 @@ const newOptionId = () => Math.random().toString(36).slice(2, 8)
 export function QuestionEditor({ question, responses }: { question: Question; responses: number }) {
   const [title, setTitle] = useState(question.title === 'Neue Frage' ? '' : question.title)
   const [description, setDescription] = useState(question.description ?? '')
-  const [config, setConfig] = useState<QuestionConfig>(question.config)
+  // Ältere Quizfragen (Richtig/Falsch mit yes/no) im Editor als normale Antwortliste zeigen.
+  const [config, setConfig] = useState<QuestionConfig>(
+    question.type === 'quiz' && !question.config.options ? { ...question.config, options: optionsOf('quiz', question.config), labels: undefined } : question.config,
+  )
   const [status, setStatus] = useState<{ error?: string; ok?: boolean }>({})
   const [pending, start] = useTransition()
   const set = (patch: Partial<QuestionConfig>) => { setConfig(c => ({ ...c, ...patch })); setStatus({}) }
@@ -51,30 +55,9 @@ export function QuestionEditor({ question, responses }: { question: Question; re
       {question.type === 'yesno' ? <p className="wp-hint">Antwortmöglichkeiten: Ja und Nein.</p> : null}
       {question.type === 'quiz' ? (
         <div className="flex flex-col gap-6">
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div className="wp-field">
-              <label htmlFor={`a1-${question.id}`}>Antwort 1</label>
-              <input id={`a1-${question.id}`} className="wp-input" maxLength={30} placeholder="Richtig"
-                value={config.labels?.yes ?? 'Richtig'} onChange={e => set({ labels: { yes: e.target.value, no: config.labels?.no ?? 'Falsch' } })} />
-            </div>
-            <div className="wp-field">
-              <label htmlFor={`a2-${question.id}`}>Antwort 2</label>
-              <input id={`a2-${question.id}`} className="wp-input" maxLength={30} placeholder="Falsch"
-                value={config.labels?.no ?? 'Falsch'} onChange={e => set({ labels: { yes: config.labels?.yes ?? 'Richtig', no: e.target.value } })} />
-            </div>
-          </div>
-          <p className="wp-hint -mt-3">Zum Beispiel «Echt» und «KI» oder «Stimmt» und «Stimmt nicht».</p>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div className="wp-field max-w-[260px]">
-              <label htmlFor={`c-${question.id}`}>Richtige Antwort</label>
-              <select id={`c-${question.id}`} className="wp-input cursor-pointer" value={config.correct ?? 'yes'} onChange={e => set({ correct: e.target.value as 'yes' | 'no' })}>
-                <option value="yes">{config.labels?.yes || 'Richtig'}</option>
-                <option value="no">{config.labels?.no || 'Falsch'}</option>
-              </select>
-            </div>
-            <NumberSelect label="Zeit zum Antworten" value={config.seconds ?? 20} options={[10, 20, 30, 60, 0]}
-              format={n => (n ? `${n} Sekunden` : 'Ohne Timer')} onChange={v => set({ seconds: v })} />
-          </div>
+          <QuizOptions config={config} set={set} />
+          <NumberSelect label="Zeit zum Antworten" value={config.seconds ?? 20} options={[10, 20, 30, 60, 0]}
+            format={n => (n ? `${n} Sekunden` : 'Ohne Timer')} onChange={v => set({ seconds: v })} />
           <QuizImage questionId={question.id} url={config.imageUrl} onChange={imageUrl => set({ imageUrl })} />
         </div>
       ) : null}
@@ -144,6 +127,41 @@ function ChoiceConfig({ config, set }: { config: QuestionConfig; set: (p: Partia
           options={Array.from({ length: Math.max(options.length - 1, 1) }, (_, i) => i + 2).filter(n => n <= options.length)}
           format={n => (n === options.length ? `${n} (alle)` : String(n))}
           onChange={v => set({ maxChoices: v })} />
+      ) : null}
+    </div>
+  )
+}
+
+/** Antworten eines Quiz: 2 bis 6, eine davon als richtig markiert. */
+function QuizOptions({ config, set }: { config: QuestionConfig; set: (p: Partial<QuestionConfig>) => void }) {
+  const options = config.options ?? []
+  const update = (next: ChoiceOption[]) => set({ options: next, ...(next.some(o => o.id === config.correct) ? {} : { correct: next[0]?.id }) })
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <p className="wp-label">Antworten</p>
+        <p className="wp-hint">Den Kreis bei der richtigen Antwort anklicken.</p>
+      </div>
+      <ol className="flex flex-col gap-3" role="radiogroup" aria-label="Richtige Antwort">
+        {options.map((o, i) => (
+          <li key={o.id} className="flex items-end gap-3">
+            <button type="button" role="radio" aria-checked={config.correct === o.id} aria-label={`Antwort ${LETTERS[i]} ist richtig`}
+              onClick={() => set({ correct: o.id })}
+              className={`mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 font-[family-name:var(--font-brand)] text-[15px] font-semibold transition-colors ${config.correct === o.id ? 'border-black bg-black text-white' : 'border-black/25 hover:border-black'}`}>
+              {config.correct === o.id ? '✓' : LETTERS[i]}
+            </button>
+            <input className="wp-input flex-1" aria-label={`Antwort ${LETTERS[i]}`} value={o.label} maxLength={80}
+              placeholder={i === 0 ? 'z. B. Frankreich' : ''}
+              onChange={e => update(options.map(x => (x.id === o.id ? { ...x, label: e.target.value } : x)))} />
+            <button type="button" className="mb-1 rounded-full px-3 py-1.5 text-[14px] font-semibold underline underline-offset-4 disabled:opacity-40"
+              disabled={options.length <= 2} onClick={() => update(options.filter(x => x.id !== o.id))} aria-label={`Antwort ${LETTERS[i]} entfernen`}>
+              Entfernen
+            </button>
+          </li>
+        ))}
+      </ol>
+      {options.length < 6 ? (
+        <button type="button" className="wp-btn-quiet self-start" onClick={() => update([...options, { id: newOptionId(), label: '' }])}>Antwort hinzufügen</button>
       ) : null}
     </div>
   )

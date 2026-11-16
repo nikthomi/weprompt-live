@@ -18,6 +18,7 @@ export default async function Preview({ searchParams }: { searchParams: Promise<
     open: q('open', 'Was möchtest du heute lernen?', { maxLength: 200, moderation: true }),
     quiz: q('quiz', 'Foto oder KI?', { seconds: 20, labels: { yes: 'Echt', no: 'KI' }, imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200' }),
     'quiz-auf': q('quiz', 'Foto oder KI?', { seconds: 20, correct: 'no', labels: { yes: 'Echt', no: 'KI' }, imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200' }),
+    quiz4: q('quiz', 'Aus welchem Land stammt Mistral?', { seconds: 20, options: [{ id: 'a', label: 'Frankreich' }, { id: 'b', label: 'USA' }, { id: 'c', label: 'China' }, { id: 'd', label: 'Deutschland' }] }),
     board: q('board', 'Wo siehst du Chancen und Risiken von KI?'),
   }
   const state: JoinState = {

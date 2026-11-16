@@ -1,36 +1,42 @@
 import { pct } from '@/lib/format'
 import type { ChoiceOption } from '@/lib/types'
 
+export const LETTERS = 'ABCDEF'
+
 /**
- * Zwei Antwort-Kacheln (z. B. Richtig/Falsch oder Echt/KI). Vor der Auflösung
- * nur die Beschriftung, danach Stimmen und Prozent; die richtige Kachel in
- * amber mit Häkchen.
+ * Antwort-Kacheln eines Quiz (2 bis 6). Vor der Auflösung nur die Beschriftung,
+ * danach Stimmen und Prozent; die richtige Kachel in amber mit Häkchen.
+ * Ab drei Antworten mit Buchstaben, damit Beamer und Handy zusammenpassen.
  */
 export function QuizTiles({ options, counts, respondents, correct }: {
   options: ChoiceOption[]
   counts: Record<string, number> | null
   respondents: number
-  correct: 'yes' | 'no' | undefined
+  correct: string | undefined
 }) {
-  const tiles = options
   const revealed = Boolean(correct && counts)
+  const letters = options.length > 2
+  const cols = options.length > 4 ? 'grid-cols-3' : 'grid-cols-2'
   return (
-    <div className="grid grid-cols-2 gap-[2cqw]">
-      {tiles.map(t => {
+    <div className={`grid ${cols} gap-[1.6cqw]`}>
+      {options.map((t, i) => {
         const n = counts?.[t.id] ?? 0
         const right = revealed && correct === t.id
         return (
           <div key={t.id}
-            className={`flex items-center justify-between gap-[2cqw] rounded-[min(1.6cqw,22px)] px-[2.4cqw] py-[2.2cqh] transition-colors duration-500 ${right ? 'bg-amber text-black' : revealed ? 'bg-white/[.06] text-white/55' : 'bg-white/10 text-white'}`}>
-            <span className="stage-label flex items-center gap-[1cqw]">
-              {right ? (
-                <svg className="h-[1em] w-[1em]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden><path d="M4 12.5 9.5 18 20 6" /></svg>
+            className={`flex items-center justify-between gap-[1.6cqw] rounded-[min(1.6cqw,22px)] px-[2cqw] py-[1.8cqh] transition-colors duration-500 ${right ? 'bg-amber text-black' : revealed ? 'bg-white/[.06] text-white/55' : 'bg-white/10 text-white'}`}>
+            <span className={`stage-label flex min-w-0 items-center gap-[1cqw] ${options.length > 2 ? '!text-[clamp(12px,1.8cqw,36px)]' : ''}`}>
+              {letters ? (
+                <span className={`flex h-[1.6em] w-[1.6em] shrink-0 items-center justify-center rounded-full text-[.8em] ${right ? 'bg-black text-amber' : 'bg-white/15'}`}>{LETTERS[i]}</span>
               ) : null}
-              {t.label}
+              {right && !letters ? (
+                <svg className="h-[1em] w-[1em] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden><path d="M4 12.5 9.5 18 20 6" /></svg>
+              ) : null}
+              <span className="min-w-0 [overflow-wrap:anywhere]">{t.label}</span>
             </span>
             {revealed ? (
-              <span className="text-right">
-                <span className="stage-num block text-[clamp(14px,3cqw,60px)] leading-none">{pct(n, respondents)}%</span>
+              <span className="shrink-0 text-right">
+                <span className="stage-num block text-[clamp(14px,2.6cqw,52px)] leading-none">{pct(n, respondents)}%</span>
                 <span className="stage-sub block opacity-75">{n} {n === 1 ? 'Stimme' : 'Stimmen'}</span>
               </span>
             ) : null}

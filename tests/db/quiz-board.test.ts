@@ -72,6 +72,32 @@ describe('Quiz Richtig/Falsch', () => {
   })
 })
 
+describe('Quiz mit mehreren Antworten', () => {
+  const options = [{ id: 'a', label: 'Frankreich' }, { id: 'b', label: 'USA' }, { id: 'c', label: 'China' }, { id: 'd', label: 'Deutschland' }]
+
+  it('nimmt genau eine der eigenen Optionen an, zählt pro Option, Lösung erst nach Auflösung', async () => {
+    const s = await makeSession(db, [{ type: 'quiz', title: 'Woher stammt Mistral?', config: { options, correct: 'a', seconds: 20 } }])
+    await activate(db, s.id, s.questions[0])
+    expect(await submit(db, s.questions[0], P1, { options: ['yes'] })).toMatchObject({ error: 'invalid' })
+    expect(await submit(db, s.questions[0], P1, { options: ['a', 'b'] })).toMatchObject({ error: 'invalid' })
+    expect(await submit(db, s.questions[0], P1, { options: ['a'] })).toMatchObject({ ok: true })
+    expect(await submit(db, s.questions[0], P2, { options: ['c'] })).toMatchObject({ ok: true })
+    const st = await state(s.id)
+    expect(st.question.config.correct).toBeUndefined()
+    expect(st.question.config.options).toHaveLength(4)
+    await sys(db, `update live_sessions set reveal = true where id = $1`, [s.id])
+    const [p] = await svc(db, `select live_present($1) as r`, [s.token])
+    expect(p.r).toMatchObject({ results: { type: 'quiz', respondents: 2, counts: { a: 1, c: 1 } }, question: { config: { correct: 'a' } } })
+  })
+
+  it('Quiz ohne eigene Optionen bleibt bei yes/no', async () => {
+    const s = await makeSession(db, [{ type: 'quiz', config: { correct: 'yes', seconds: 0, labels: { yes: 'Echt', no: 'KI' } } }])
+    await activate(db, s.id, s.questions[0])
+    expect(await submit(db, s.questions[0], P1, { options: ['a'] })).toMatchObject({ error: 'invalid' })
+    expect(await submit(db, s.questions[0], P1, { options: ['no'] })).toMatchObject({ ok: true })
+  })
+})
+
 describe('Manuelle Wortwolke', () => {
   it('nimmt keine Antworten von Handys an', async () => {
     const s = await makeSession(db, [{ type: 'board' }])

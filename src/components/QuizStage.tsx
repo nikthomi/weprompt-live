@@ -12,7 +12,8 @@ export function QuizStage({ snap }: { snap: Snapshot }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-start justify-between gap-[3cqw]">
-        <h1 className="stage-title max-w-[78cqw] [overflow-wrap:anywhere]">{q.title}</h1>
+        {/* Lange Aussagen (z. B. ganze Prompts) kleiner setzen, damit sie auf die Bühne passen. */}
+        <h1 className={`stage-title max-w-[78cqw] [overflow-wrap:anywhere] ${q.title.length > 160 ? '!text-[clamp(16px,2.6cqw,52px)] !leading-[1.2]' : q.title.length > 90 ? '!text-[clamp(18px,3.2cqw,64px)]' : ''}`}>{q.title}</h1>
         {left !== null && left > 0 ? <TimerRing left={left} total={q.config.seconds ?? 20} /> : null}
       </div>
       {q.description ? <p className="stage-sub mt-[1.5cqh] max-w-[70cqw] text-white/75">{q.description}</p> : null}

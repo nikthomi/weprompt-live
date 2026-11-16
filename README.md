@@ -23,7 +23,7 @@ Live-Steuerung per Tastatur: ← → Fragen wechseln · O Abstimmung öffnen/sch
 | Ja/Nein | zwei grosse Kacheln | zwei grosse Prozentzahlen über geteiltem Balken | – |
 | Skala | Zahlenkacheln | Säulen pro Wert, Durchschnitt gross und als Markierung | 1–5 oder 1–10, Beschriftung der Enden |
 | Offene Frage | Textfeld (20–500 Zeichen) | Antwortkarten, neue Karten blenden ein | Länge, Zurückhalten bis zur Freigabe; Antworten ausblenden/löschen |
-| Quiz mit zwei Antworten | zwei Kacheln (frei beschriftbar, z. B. Echt/KI), ein Tipp sendet; danach «Richtig!»/«Leider falsch.» mit Bilanz | Aussage, Bild, Countdown-Ring; nach der Auflösung richtige Kachel in amber mit Prozent | Beschriftung der beiden Antworten, richtige Antwort, Timer (10/20/30/60 s oder ohne), Bild (wird auf 1600 px verkleinert) |
+| Quiz | 2 bis 6 Antworten wie bei Kahoot (bei mehr als zwei mit Buchstaben A bis F), ein Tipp sendet; danach «Richtig!»/«Leider falsch.» mit Bilanz | Aussage, Bild, Countdown-Ring; nach der Auflösung richtige Kachel in amber mit Prozent | Antworten (2 bis 6) mit der richtigen markiert, Timer (10/20/30/60 s oder ohne), Bild (wird auf 1600 px verkleinert) |
 | Manuelle Wortwolke | keine Eingabe («Schau auf die Leinwand») | Leinwand mit Begriffen und Kategorien, die die Kursleitung live verschiebt | Kategorien und Begriffe vorbereiten; Grösse der Begriffe |
 
 **Quiz:** Die richtige Antwort bleibt bis zur Auflösung auf dem Server (nicht im öffentlichen Zustand, nicht in Realtime-Meldungen). Den Timer setzt die Datenbank beim Aktivieren (`voting_deadline`), Antworten danach oder nach der Auflösung werden abgelehnt. Die Live-Steuerung löst bei Zeitablauf automatisch auf, «Jetzt auflösen» (Taste E) geht früher. Abstimmung wieder öffnen startet den Timer neu. Die Bilanz «x von y richtig» zählt jedes Gerät für sich (lokal gespeichert, keine Rangliste).
@@ -61,7 +61,7 @@ Admin ── Supabase-Session (RLS) ──────────────�
 | `live_rate_limits` | Zähler für Rate Limits (unlogged, wird stündlich ausgedünnt) |
 | `live_board_items` | Leinwand der manuellen Wortwolke: Begriffe und Kategorien mit relativen Koordinaten (0–1) |
 
-Storage: öffentlicher Bucket `live-images` für Quiz-Bilder (JPG/PNG/WebP, max. 5 MB, hochladen und löschen nur für Admins). Migrationen: `20261023100000_live.sql` (Grundlage), `20261026100000_live_quiz_board.sql` (Quiz, Leinwand, Bilder).
+Storage: öffentlicher Bucket `live-images` für Quiz-Bilder (JPG/PNG/WebP, max. 5 MB, hochladen und löschen nur für Admins). Migrationen: `20261023100000_live.sql` (Grundlage), `20261026100000_live_quiz_board.sql` (Quiz, Leinwand, Bilder), `20261116100000_live_quiz_options.sql` (Quiz mit eigenen Antworten).
 
 Das Projekt teilt sich die Supabase-Instanz mit Anmelde-Tool und Kursportal, ist aber unabhängig: nur `live_`-Objekte, keine Verweise auf andere Tabellen. Gemeinsam ist nur `auth.users` (dieselben Logins).
 

@@ -7,7 +7,7 @@ export default function Preview() {
   if (process.env.NODE_ENV === 'production') notFound()
   const question: Question = {
     id: '00000000-0000-4000-8000-0000000000aa', session_id: '00000000-0000-4000-8000-000000000000', position: 1,
-    type: 'quiz', title: 'Foto oder KI?', description: null, config: { correct: 'no', seconds: 20 }, enabled: true,
+    type: 'quiz', title: 'Aus welchem Land stammt Mistral?', description: null, config: { correct: 'a', seconds: 20, options: [{ id: 'a', label: 'Frankreich' }, { id: 'b', label: 'USA' }, { id: 'c', label: 'China' }, { id: 'd', label: 'Deutschland' }] }, enabled: true,
   }
   return (
     <main className="min-h-dvh bg-mist p-10">

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useCountdown } from '@/lib/clock'
+import { LETTERS } from '@/components/results/Quiz'
 import { Logo } from '@/components/ui'
 import { anonClient } from '@/lib/supabase/browser'
 import { useLiveChannel } from '@/lib/realtime'
@@ -326,7 +327,7 @@ function QuizScreen({ state, q, code, pid, onAnswered, onClosed }: {
     if (correct && mine) recordQuizResult(code, q.id, mine === correct)
   }, [correct, mine, code, q.id])
 
-  async function answer(id: 'yes' | 'no') {
+  async function answer(id: string) {
     if (sending || mine) return
     setSending(id)
     setError(null)
@@ -354,7 +355,8 @@ function QuizScreen({ state, q, code, pid, onAnswered, onClosed }: {
         {q.total > 1 ? <p className="t-small text-white/60">Frage {q.number} von {q.total}</p> : <span />}
         {left !== null && left > 0 && !mine ? <p className="t-small tabular-nums text-white/80" role="timer">Noch {Math.ceil(left)} s</p> : null}
       </div>
-      <h1 className="t-h2 mt-3 text-white [overflow-wrap:anywhere]">{q.title}</h1>
+      <h1 className={`mt-3 text-white [overflow-wrap:anywhere] ${q.title.length > 120 ? 't-h3' : 't-h2'}`}>{q.title}</h1>
+      {q.description ? <p className="t-body mt-3 text-white/75">{q.description}</p> : null}
       {q.config.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={q.config.imageUrl} alt="" className="mt-6 max-h-[38vh] w-full rounded-[var(--radius-card)] object-contain" />
@@ -393,14 +395,28 @@ function QuizScreen({ state, q, code, pid, onAnswered, onClosed }: {
   return (
     <>
       {head}
-      <div className="grid grid-cols-2 gap-3" role="group" aria-label="Antwort wählen">
-        {(['yes', 'no'] as const).map(id => (
-          <button key={id} type="button" className="choice-tile min-h-[120px] justify-center text-center !text-[26px]"
-            disabled={Boolean(sending)} aria-busy={sending === id} onClick={() => answer(id)}>
-            {sending === id ? '…' : label(id)}
-          </button>
-        ))}
-      </div>
+      {/* Zwei kurze Antworten nebeneinander, sonst untereinander mit Buchstaben wie auf dem Beamer. */}
+      {options.length === 2 && options.every(o => o.label.length <= 14) ? (
+        <div className="grid grid-cols-2 gap-3" role="group" aria-label="Antwort wählen">
+          {options.map(o => (
+            <button key={o.id} type="button" className="choice-tile min-h-[120px] justify-center text-center !text-[26px]"
+              disabled={Boolean(sending)} aria-busy={sending === o.id} onClick={() => answer(o.id)}>
+              {sending === o.id ? '…' : o.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3" role="group" aria-label="Antwort wählen">
+          {options.map((o, i) => (
+            <button key={o.id} type="button" className="choice-tile" disabled={Boolean(sending)} aria-busy={sending === o.id} onClick={() => answer(o.id)}>
+              {options.length > 2 ? (
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mist text-[16px]" aria-hidden>{LETTERS[i]}</span>
+              ) : null}
+              <span className="min-w-0 [overflow-wrap:anywhere]">{sending === o.id ? '…' : o.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {error ? <p role="alert" className="t-body mt-6 rounded-[16px] bg-white px-4 py-3 text-black ring-2 ring-coral">{error}</p> : null}
     </>
   )
