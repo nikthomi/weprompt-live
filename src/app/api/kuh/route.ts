@@ -1,17 +1,22 @@
-import type { NextRequest } from 'next/server'
+import type { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/server'
 import { clientKey, json } from '@/lib/public-api'
 
 /**
  * Kreativ-Challenge «Die Kuh muss auf die Alp!» (kuh.weprompt.ch).
- * Ohne Login: jede Person darf ein Bild hochladen, alle Bilder erscheinen in der Galerie.
- * Der Schutz liegt hier: Dateityp wird am Inhalt geprüft, Grösse und Gesamtzahl sind
- * begrenzt, pro Netz gibt es ein Rate Limit. Bilder liegen im öffentlichen Bucket «kuh».
+ * Ohne Login: jede Person darf EIN Bild hochladen, alle Bilder erscheinen in der Galerie.
+ * «Eine Person» heisst hier: ein Browser. Beim Hochladen setzt der Server ein Cookie mit dem
+ * Dateinamen. Solange diese Datei noch existiert, wird ein zweiter Upload abgelehnt. Löscht die
+ * Moderation das Bild, darf die Person erneut hochladen. Das ist eine Spielregel, kein
+ * Sicherheitsmerkmal: Mit einem privaten Fenster oder einem zweiten Gerät lässt sie sich umgehen.
+ * Der Rest des Schutzes: Dateityp am Inhalt, Grösse, Gesamtzahl, Rate Limit pro Netz.
  */
 const BUCKET = 'kuh'
 const MAX_BYTES = 4_500_000 // Vercel erlaubt höchstens 4,5 MB pro Anfrage
 const MAX_IMAGES = 300
+const COOKIE = 'kuh_bild'
+const NAME_RE = /^[a-z0-9-]{4,60}\.(jpg|png|webp)$/
 
 function sniff(b: Uint8Array): { type: string; ext: string } | null {
   if (b.length > 12 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return { type: 'image/jpeg', ext: 'jpg' }
@@ -28,7 +33,12 @@ async function listAll() {
   return (data ?? []).filter(f => f.name && !f.name.startsWith('.') && f.id)
 }
 
-export async function GET() {
+function ownName(req: NextRequest, existing: string[]) {
+  const v = req.cookies.get(COOKIE)?.value
+  return v && NAME_RE.test(v) && existing.includes(v) ? v : null
+}
+
+export async function GET(req: NextRequest) {
   try {
     const supabase = createAdminClient()
     const files = await listAll()
@@ -37,7 +47,8 @@ export async function GET() {
       n: i + 1,
       url: supabase.storage.from(BUCKET).getPublicUrl(f.name).data.publicUrl,
     }))
-    return json({ images })
+    const mine = ownName(req, files.map(f => f.name))
+    return json({ images, mine: mine ? { id: mine, n: images.find(i => i.id === mine)?.n ?? null } : null })
   } catch (e) {
     console.error('kuh: Liste fehlgeschlagen', e)
     return json({ error: 'server', message: 'Die Galerie konnte nicht geladen werden.' }, 500)
@@ -71,11 +82,17 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    if ((await listAll()).length >= MAX_IMAGES) return json({ error: 'full', message: 'Die Galerie ist voll.' }, 409)
+    const existing = await listAll()
+    if (ownName(req, existing.map(f => f.name))) {
+      return json({ error: 'already', message: 'Du hast schon ein Bild hochgeladen. Pro Person ist eines möglich.' }, 409)
+    }
+    if (existing.length >= MAX_IMAGES) return json({ error: 'full', message: 'Die Galerie ist voll.' }, 409)
     const name = `${Date.now().toString(36)}-${randomBytes(5).toString('hex')}.${kind.ext}`
     const { error } = await supabase.storage.from(BUCKET).upload(name, bytes, { contentType: kind.type, cacheControl: '31536000', upsert: false })
     if (error) throw error
-    return json({ ok: true, id: name })
+    const res = json({ ok: true, id: name }) as NextResponse
+    res.cookies.set(COOKIE, name, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 * 7 })
+    return res
   } catch (e) {
     console.error('kuh: Upload fehlgeschlagen', e)
     return json({ error: 'server', message: 'Hochladen fehlgeschlagen. Bitte nochmals versuchen.' }, 500)

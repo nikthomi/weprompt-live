@@ -108,7 +108,14 @@ export function Praesentation() {
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img key={current.id} src={current.url} alt={`Bild Nr. ${current.n}`} className="max-h-full max-w-full rounded-[25px] object-contain" />
+          <img
+            key={current.id}
+            src={current.url}
+            alt={`Bild Nr. ${current.n}`}
+            className="block rounded-[25px] object-contain"
+            // Feste Grenzen in Viewport-Einheiten: Hoch- und Querformate passen immer ganz auf den Bildschirm.
+            style={{ maxHeight: 'calc(100dvh - 130px)', maxWidth: 'calc(100vw - 80px)' }}
+          />
           {/* Nächstes Bild vorladen, damit der Wechsel ohne Blitzen klappt. */}
           {images[safeIndex + 1] ? (
             // eslint-disable-next-line @next/next/no-img-element

@@ -44,6 +44,7 @@ async function uploadOne(file: File): Promise<{ ok: true } | { ok: false; messag
 
 export function KuhApp() {
   const [images, setImages] = useState<Img[]>([])
+  const [mine, setMine] = useState<{ id: string; n: number | null } | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [status, setStatus] = useState<Status>({ kind: 'idle', text: '' })
   const [dragging, setDragging] = useState(false)
@@ -54,8 +55,9 @@ export function KuhApp() {
     try {
       const res = await fetch('/api/kuh', { cache: 'no-store' })
       if (!res.ok) return
-      const data = (await res.json()) as { images: Img[] }
+      const data = (await res.json()) as { images: Img[]; mine?: { id: string; n: number | null } | null }
       setImages([...data.images].reverse()) // neueste zuerst
+      setMine(data.mine ?? null)
       setLoaded(true)
     } catch {
       // Beim nächsten Durchlauf nochmals versuchen.
@@ -74,24 +76,23 @@ export function KuhApp() {
   }, [load])
 
   async function handleFiles(list: FileList | File[] | null) {
-    const files = Array.from(list ?? []).filter(f => f.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name))
-    if (files.length === 0) {
+    if (mine) {
+      setStatus({ kind: 'error', text: 'Du hast schon ein Bild hochgeladen. Pro Person ist eines möglich.' })
+      return
+    }
+    const file = Array.from(list ?? []).find(f => f.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name))
+    if (!file) {
       setStatus({ kind: 'error', text: 'Bitte ein Bild auswählen (JPG, PNG oder WebP).' })
       return
     }
-    let done = 0
-    for (const [i, file] of files.entries()) {
-      setStatus({ kind: 'busy', text: files.length > 1 ? `Bild ${i + 1} von ${files.length} wird hochgeladen …` : 'Bild wird hochgeladen …' })
-      const r = await uploadOne(file)
-      if (!r.ok) {
-        setStatus({ kind: 'error', text: r.message })
-        await load()
-        return
-      }
-      done += 1
-    }
+    setStatus({ kind: 'busy', text: 'Bild wird hochgeladen …' })
+    const r = await uploadOne(file)
     await load()
-    setStatus({ kind: 'ok', text: done > 1 ? `Geschafft! ${done} Bilder sind in der Galerie.` : 'Geschafft! Dein Bild ist in der Galerie.' })
+    if (!r.ok) {
+      setStatus({ kind: 'error', text: r.message })
+      return
+    }
+    setStatus({ kind: 'ok', text: 'Geschafft! Dein Bild ist in der Galerie.' })
   }
 
   const current = open ? images.findIndex(i => i.id === open) : -1
@@ -133,6 +134,12 @@ export function KuhApp() {
         </header>
 
         <section className="mt-8 md:mt-10" aria-label="Bild hochladen">
+          {mine ? (
+            <div className="flex flex-col gap-1 rounded-[var(--radius-card)] bg-mist px-5 py-4 sm:flex-row sm:items-center sm:gap-5">
+              <span className="wp-tag compact shrink-0 self-start !bg-amber font-bold sm:self-auto">{mine.n ? `Nr. ${mine.n}` : 'Dein Bild'}</span>
+              <p className="t-lead flex-1 text-black">Dein Bild ist in der Galerie. Pro Person ist ein Bild möglich.</p>
+            </div>
+          ) : (
           <div
             onDragOver={e => {
               e.preventDefault()
@@ -163,7 +170,6 @@ export function KuhApp() {
               ref={inputRef}
               type="file"
               accept="image/*"
-              multiple
               className="sr-only"
               tabIndex={-1}
               onChange={e => {
@@ -172,6 +178,7 @@ export function KuhApp() {
               }}
             />
           </div>
+          )}
           <p role="status" aria-live="polite" className={`t-lead mt-4 min-h-[30px] ${status.kind === 'error' ? 'text-amber' : 'text-white'}`}>
             {status.text}
           </p>
