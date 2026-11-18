@@ -166,20 +166,30 @@ export function Praesentation() {
   const gridW = grid.cols * grid.width + (grid.cols - 1) * GAP
   const gridH = grid.rows * cellH + (grid.rows - 1) * GAP
 
+  // Stufen nach Punktzahl: Bilder mit gleich vielen Punkten teilen sich dieselbe Stufe (gleiches Podest).
+  const tiers: { pts: number; imgs: KuhImg[] }[] = []
+  for (const img of ranked) {
+    const p = pts(img.id)
+    if (p <= 0) break
+    const last = tiers[tiers.length - 1]
+    if (last && last.pts === p) last.imgs.push(img)
+    else tiers.push({ pts: p, imgs: [img] })
+  }
+  const tierOf = (id: string) => tiers.findIndex(t => t.imgs.some(i => i.id === id))
+
   // Podest: Breiten aus dem verfügbaren Bereich, Höhen so, dass alles ohne Scrollen passt.
-  const top3 = ranked.slice(0, 3)
   const P_GAP = 28
-  const wTotal = Math.max(0, area.w - 2 * P_GAP)
-  const s = Math.min(1, (0.56 * area.h) / ((0.4 * wTotal * 3) / 4 || 1))
-  const wc = 0.4 * wTotal * s
-  const ws = 0.3 * wTotal * s
-  const rem = area.h - (wc * 3) / 4 - 76
+  const TILE_GAP = 14
+  const CAP = 5 // mehr Bilder pro Stufe würden zu klein
+  const WEIGHT = [1.35, 1, 1] // Mitte (Platz 1) etwas grösser als die Seiten
+  const top = tiers.slice(0, 3).map((t, k) => ({ ...t, k, shown: t.imgs.slice(0, CAP), more: Math.max(0, t.imgs.length - CAP) }))
+  const weightSum = top.reduce((sum, t) => sum + t.shown.length * WEIGHT[t.k], 0)
+  const gapSum = top.reduce((sum, t) => sum + (t.shown.length - 1) * TILE_GAP, 0) + Math.max(0, top.length - 1) * P_GAP
+  const u = Math.max(0, Math.min((area.w - gapSum) / (weightSum || 1), (0.56 * area.h) / (0.75 * 1.35)))
+  const rem = area.h - 0.75 * 1.35 * u - 96
   const p1 = Math.max(0.08 * area.h, Math.min(0.3 * area.h, rem * 0.85))
-  const columns = [
-    { img: top3[1], rank: 1, w: ws, ped: p1 * 0.66 },
-    { img: top3[0], rank: 0, w: wc, ped: p1 },
-    { img: top3[2], rank: 2, w: ws, ped: p1 * 0.42 },
-  ]
+  const PED = [p1, p1 * 0.66, p1 * 0.42]
+  const columns = [1, 0, 2].map(k => top.find(t => t.k === k)).filter((t): t is (typeof top)[number] => Boolean(t))
 
   return (
     <div className="on-violett fixed inset-0 z-[100] flex select-none flex-col overflow-hidden bg-violett text-white">
@@ -232,7 +242,8 @@ export function Praesentation() {
               <ul className="relative" style={{ width: gridW, height: gridH }}>
                 {ordered.map((img, i) => {
                   const p = pts(img.id)
-                  const rank = phase === 'ranked' && p > 0 && i < 3 ? i : -1
+                  const tier = phase === 'ranked' && p > 0 ? tierOf(img.id) : -1
+                  const rank = tier >= 0 && tier < 3 ? tier : -1
                   return (
                     <li
                       key={img.id}
@@ -274,28 +285,37 @@ export function Praesentation() {
           </header>
           <div ref={areaRef} className="min-h-0 flex-1 px-6 pb-14 md:px-10">
             <div className="flex h-full w-full items-end justify-center" style={{ gap: P_GAP }}>
-              {columns.map(c =>
-                c.img ? (
-                  <div key={c.img.id} className="flex flex-col items-stretch" style={{ width: c.w }}>
-                    <div
-                      className="relative overflow-hidden bg-mist"
-                      style={{ height: (c.w * 3) / 4, border: `${Math.max(8, c.w / 36)}px solid ${RANK_COLORS[c.rank]}`, borderRadius: 22, boxShadow: '0 14px 44px rgba(0,0,0,.4)' }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={c.img.url} alt={`Platz ${c.rank + 1}: Bild Nr. ${c.img.n}`} className="block h-full w-full object-contain" />
+              {columns.map(c => {
+                const tw = WEIGHT[c.k] * u
+                const colW = c.shown.length * tw + (c.shown.length - 1) * TILE_GAP
+                const color = RANK_COLORS[c.k]
+                const label = c.shown.map(i => `Nr. ${i.n}`).join(' und ') + (c.more ? ` und ${c.more} weitere` : '')
+                return (
+                  <div key={c.k} className="flex flex-col items-stretch" style={{ width: colW }}>
+                    <div className="flex items-end justify-center" style={{ gap: TILE_GAP }}>
+                      {c.shown.map(img => (
+                        <div
+                          key={img.id}
+                          className="relative shrink-0 overflow-hidden bg-mist"
+                          style={{ width: tw, height: (tw * 3) / 4, border: `${Math.max(6, tw / 36)}px solid ${color}`, borderRadius: 22, boxShadow: '0 14px 44px rgba(0,0,0,.4)' }}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img.url} alt={`Platz ${c.k + 1}: Bild Nr. ${img.n}`} className="block h-full w-full object-contain" />
+                        </div>
+                      ))}
                     </div>
                     <div
                       className="mt-3 flex flex-col items-center justify-center rounded-t-[16px]"
-                      style={{ height: c.ped, background: RANK_COLORS[c.rank], color: c.rank === 2 ? '#ffffff' : '#1e1e1e' }}
+                      style={{ height: PED[c.k], background: color, color: c.k === 2 ? '#ffffff' : '#1e1e1e' }}
                     >
-                      <span className="font-[family-name:var(--font-brand)] font-bold leading-none" style={{ fontSize: Math.max(24, c.ped * 0.55) }}>{c.rank + 1}</span>
+                      <span className="font-[family-name:var(--font-brand)] font-bold leading-none" style={{ fontSize: Math.max(24, PED[c.k] * 0.55) }}>{c.k + 1}</span>
                     </div>
-                    <p className="mt-2 text-center font-[family-name:var(--font-brand)] font-semibold uppercase leading-tight" style={{ fontSize: Math.max(14, Math.min(30, c.w / 18)) }}>
-                      Nr. {c.img.n} · {pts(c.img.id)} {pts(c.img.id) === 1 ? 'Punkt' : 'Punkte'}
+                    <p className="mt-2 text-center font-[family-name:var(--font-brand)] font-semibold uppercase leading-tight" style={{ fontSize: Math.max(14, Math.min(30, WEIGHT[c.k] * u / 14)) }}>
+                      {label} · {c.pts} {c.pts === 1 ? 'Punkt' : 'Punkte'}
                     </p>
                   </div>
-                ) : null,
-              )}
+                )
+              })}
             </div>
           </div>
         </>
