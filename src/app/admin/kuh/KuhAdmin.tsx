@@ -57,8 +57,7 @@ export function KuhAdmin({ canClear }: { canClear: boolean }) {
       </div>
 
       <p className="t-body max-w-[760px] rounded-[var(--radius-card)] bg-white px-6 py-4">
-        <b>So läuft die Präsentation:</b> Jedes Bild einzeln, dann alle zusammen in einer Galerie ohne Scrollen. Mit den Pfeiltasten oder einem Klick weiterschalten, <kbd>G</kbd> springt zur Galerie, <kbd>F</kbd> schaltet Vollbild ein, <kbd>A</kbd> startet den Automatikmodus, <kbd>Esc</kbd> beendet.
-      </p>
+        <b>So läuft die Präsentation:</b> Jedes Bild einzeln, dann alle zusammen in einer Galerie ohne Scrollen. Mit den Pfeiltasten oder einem Klick weiterschalten, <kbd>G</kbd> springt zur Galerie, <kbd>F</kbd> schaltet Vollbild ein, <kbd>A</kbd> startet den Automatikmodus, <kbd>Esc</kbd> beendet.<br /><b>Wertung:</b> In der Galerie gibt ein Klick auf ein Bild einen Punkt (Umschalt oder Rechtsklick nimmt einen weg, <kbd>Z</kbd> macht den letzten rückgängig). Die Bilder ordnen sich nach der Rangliste. Mit «Fertig» (oder Enter) erscheinen die drei Siegerbilder gerahmt auf dem Siegerpodest.</p>
 
       <div role="status" aria-live="polite" className="t-body min-h-6 text-coral">{message}</div>
 
