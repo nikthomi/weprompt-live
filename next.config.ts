@@ -9,6 +9,12 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  async rewrites() {
+    return {
+      // kuh.weprompt.ch ist die Galerie zur Kreativ-Challenge «Die Kuh muss auf die Alp!».
+      beforeFiles: [{ source: '/', has: [{ type: 'host', value: 'kuh.weprompt.ch' }], destination: '/kuh' }],
+    }
+  },
   async headers() {
     return [
       // Admin und Teilnahme dürfen nicht eingebettet werden (Clickjacking).
