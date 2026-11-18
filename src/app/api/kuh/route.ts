@@ -1,5 +1,5 @@
 import type { NextRequest, NextResponse } from 'next/server'
-import { randomBytes } from 'node:crypto'
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { createAdminClient } from '@/lib/supabase/server'
 import { clientKey, json } from '@/lib/public-api'
 
@@ -8,7 +8,7 @@ import { clientKey, json } from '@/lib/public-api'
  * Ohne Login: jede Person darf EIN Bild hochladen, alle Bilder erscheinen in der Galerie.
  * «Eine Person» heisst hier: ein Browser. Beim Hochladen setzt der Server ein Cookie mit dem
  * Dateinamen. Solange diese Datei noch existiert, wird ein zweiter Upload abgelehnt. Löscht die
- * Moderation das Bild, darf die Person erneut hochladen. Das ist eine Spielregel, kein
+ * Moderation das Bild oder die Person selbst (DELETE), darf sie erneut hochladen. Das ist eine Spielregel, kein
  * Sicherheitsmerkmal: Mit einem privaten Fenster oder einem zweiten Gerät lässt sie sich umgehen.
  * Der Rest des Schutzes: Dateityp am Inhalt, Grösse, Gesamtzahl, Rate Limit pro Netz.
  */
@@ -33,9 +33,31 @@ async function listAll() {
   return (data ?? []).filter(f => f.name && !f.name.startsWith('.') && f.id)
 }
 
+/**
+ * Das Cookie enthält «Dateiname.Signatur». Ohne Signatur könnte jede Person einen fremden
+ * Dateinamen (steht in den öffentlichen Bild-Adressen) ins Cookie schreiben und so fremde
+ * Bilder löschen. Der Schlüssel liegt nur auf dem Server.
+ */
+function sign(name: string) {
+  const secret = process.env.RATE_LIMIT_SALT ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'weprompt-kuh'
+  return createHmac('sha256', secret).update(`kuh:${name}`).digest('base64url').slice(0, 24)
+}
+
+function cookieValue(name: string) {
+  return `${name}.${sign(name)}`
+}
+
 function ownName(req: NextRequest, existing: string[]) {
   const v = req.cookies.get(COOKIE)?.value
-  return v && NAME_RE.test(v) && existing.includes(v) ? v : null
+  if (!v) return null
+  const i = v.lastIndexOf('.')
+  // Dateiname enthält selbst einen Punkt (.jpg), die Signatur steht nach dem letzten Punkt.
+  const name = v.slice(0, i)
+  const sig = v.slice(i + 1)
+  if (!NAME_RE.test(name)) return null
+  const expected = sign(name)
+  if (sig.length !== expected.length || !timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null
+  return existing.includes(name) ? name : null
 }
 
 export async function GET(req: NextRequest) {
@@ -91,10 +113,28 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase.storage.from(BUCKET).upload(name, bytes, { contentType: kind.type, cacheControl: '31536000', upsert: false })
     if (error) throw error
     const res = json({ ok: true, id: name }) as NextResponse
-    res.cookies.set(COOKIE, name, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 * 7 })
+    res.cookies.set(COOKIE, cookieValue(name), { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 60 * 60 * 24 * 7 })
     return res
   } catch (e) {
     console.error('kuh: Upload fehlgeschlagen', e)
     return json({ error: 'server', message: 'Hochladen fehlgeschlagen. Bitte nochmals versuchen.' }, 500)
+  }
+}
+
+/** Jede Person darf nur ihr eigenes Bild löschen (das, dessen Dateiname im Cookie steht). */
+export async function DELETE(req: NextRequest) {
+  try {
+    const supabase = createAdminClient()
+    const files = await listAll()
+    const mine = ownName(req, files.map(f => f.name))
+    if (!mine) return json({ error: 'none', message: 'Du hast kein Bild in der Galerie.' }, 404)
+    const { error } = await supabase.storage.from(BUCKET).remove([mine])
+    if (error) throw error
+    const res = json({ ok: true }) as NextResponse
+    res.cookies.set(COOKIE, '', { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 0 })
+    return res
+  } catch (e) {
+    console.error('kuh: Löschen fehlgeschlagen', e)
+    return json({ error: 'server', message: 'Löschen fehlgeschlagen. Bitte nochmals versuchen.' }, 500)
   }
 }

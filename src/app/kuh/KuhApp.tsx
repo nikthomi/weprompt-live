@@ -75,6 +75,20 @@ export function KuhApp() {
     }
   }, [load])
 
+  async function deleteMine() {
+    if (!confirm('Dein Bild aus der Galerie löschen? Danach kannst du ein neues hochladen.')) return
+    setStatus({ kind: 'busy', text: 'Bild wird gelöscht …' })
+    try {
+      const res = await fetch('/api/kuh', { method: 'DELETE' })
+      const data = (await res.json().catch(() => null)) as { message?: string } | null
+      await load()
+      if (res.ok) setStatus({ kind: 'ok', text: 'Dein Bild wurde gelöscht. Du kannst ein neues hochladen.' })
+      else setStatus({ kind: 'error', text: data?.message ?? 'Löschen fehlgeschlagen. Bitte nochmals versuchen.' })
+    } catch {
+      setStatus({ kind: 'error', text: 'Keine Verbindung. Bitte nochmals versuchen.' })
+    }
+  }
+
   async function handleFiles(list: FileList | File[] | null) {
     if (mine) {
       setStatus({ kind: 'error', text: 'Du hast schon ein Bild hochgeladen. Pro Person ist eines möglich.' })
@@ -138,6 +152,7 @@ export function KuhApp() {
             <div className="flex flex-col gap-1 rounded-[var(--radius-card)] bg-mist px-5 py-4 sm:flex-row sm:items-center sm:gap-5">
               <span className="wp-tag compact shrink-0 self-start !bg-amber font-bold sm:self-auto">{mine.n ? `Nr. ${mine.n}` : 'Dein Bild'}</span>
               <p className="t-lead flex-1 text-black">Dein Bild ist in der Galerie. Pro Person ist ein Bild möglich.</p>
+              <button type="button" className="wp-btn-quiet shrink-0 self-start sm:self-auto" disabled={status.kind === 'busy'} onClick={() => void deleteMine()}>Mein Bild löschen</button>
             </div>
           ) : (
           <div
@@ -204,7 +219,7 @@ export function KuhApp() {
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={img.url} alt={`Bild Nr. ${img.n}`} loading="lazy" decoding="async" className="block h-auto w-full transition-transform duration-300 group-hover:scale-[1.02]" />
-                    <span className="wp-tag compact absolute left-3 top-3 !bg-amber font-bold">Nr. {img.n}</span>
+                    <span className="wp-tag compact absolute left-3 top-3 !bg-amber font-bold">Nr. {img.n}{img.id === mine?.id ? ' · Dein Bild' : ''}</span>
                   </button>
                 </li>
               ))}
