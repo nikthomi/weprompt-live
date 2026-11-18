@@ -36,7 +36,7 @@ function useSize() {
   return [setEl, size] as const
 }
 
-type Phase = 'single' | 'gallery' | 'podium'
+type Phase = 'single' | 'gallery' | 'ranked' | 'podium'
 type Votes = { points: Record<string, number>; history: string[] }
 const NO_VOTES: Votes = { points: {}, history: [] }
 
@@ -80,6 +80,8 @@ export function Praesentation() {
 
   const pts = useCallback((id: string) => votes.points[id] ?? 0, [votes])
   const ranked: KuhImg[] = [...images].sort((a, b) => pts(b.id) - pts(a.id) || a.n - b.n)
+  // Während der Punktevergabe bleiben die Bilder an ihrem Platz (nach Nummer). Erst die Rangliste ordnet neu.
+  const ordered: KuhImg[] = phase === 'ranked' ? ranked : images
   const total = images.reduce((s, i) => s + pts(i.id), 0)
 
   const vote = useCallback((id: string, d: 1 | -1) => {
@@ -109,22 +111,27 @@ export function Praesentation() {
   }, [])
 
   const next = useCallback(() => {
-    if (phase !== 'single') return
-    if (safeIndex >= count - 1) setPhase('gallery')
-    else setIndex(safeIndex + 1)
+    if (phase === 'ranked') setPhase('podium')
+    else if (phase === 'single') {
+      if (safeIndex >= count - 1) setPhase('gallery')
+      else setIndex(safeIndex + 1)
+    }
   }, [phase, safeIndex, count])
 
   const prev = useCallback(() => {
-    if (phase === 'podium') setPhase('gallery')
+    if (phase === 'podium') setPhase('ranked')
+    else if (phase === 'ranked') setPhase('gallery')
     else if (phase === 'gallery') {
       setPhase('single')
       setIndex(Math.max(0, count - 1))
     } else setIndex(Math.max(0, safeIndex - 1))
   }, [phase, safeIndex, count])
 
+  // «Fertig»: erst jetzt ordnen sich die Bilder nach der Rangliste. Nochmals Enter zeigt das Podest.
   const toFinish = useCallback(() => {
-    if (total > 0) setPhase('podium')
-  }, [total])
+    if (phase === 'gallery' && total > 0) setPhase('ranked')
+    else if (phase === 'ranked') setPhase('podium')
+  }, [phase, total])
 
   const toggleFullscreen = useCallback(() => {
     if (document.fullscreenElement) void document.exitFullscreen()
@@ -140,7 +147,7 @@ export function Praesentation() {
       else if (e.key === 'a' || e.key === 'A') setAuto(a => !a)
       else if (e.key === 'Home') { setPhase('single'); setIndex(0) }
       else if ((e.key === 'z' || e.key === 'Z' || e.key === 'Backspace') && phase === 'gallery') { e.preventDefault(); undo() }
-      else if (e.key === 'Enter' && phase === 'gallery') toFinish()
+      else if (e.key === 'Enter' && (phase === 'gallery' || phase === 'ranked')) toFinish()
       else if (e.key === 'Escape') router.push('/admin/kuh')
     }
     window.addEventListener('keydown', onKey)
@@ -207,7 +214,7 @@ export function Praesentation() {
           <span className="absolute left-6 top-6 rounded-full bg-amber px-6 py-2 font-[family-name:var(--font-brand)] text-[clamp(22px,3vw,44px)] font-bold uppercase leading-none text-black">Nr. {current.n}</span>
           <span className="absolute right-6 top-6 rounded-full border-2 border-white px-5 py-1.5 font-[family-name:var(--font-brand)] text-[clamp(16px,1.8vw,28px)] font-semibold">{safeIndex + 1} / {count}</span>
         </div>
-      ) : phase === 'gallery' ? (
+      ) : phase === 'gallery' || phase === 'ranked' ? (
         <>
           <header className="flex items-center justify-between gap-4 px-6 pb-3 pt-5 md:px-10">
             <h1 className="font-[family-name:var(--font-brand)] text-[clamp(22px,2.6vw,40px)] font-semibold leading-none">Die Kuh muss auf die Alp!</h1>
@@ -215,15 +222,17 @@ export function Praesentation() {
               <span className="rounded-full border-2 border-white px-5 py-1 font-[family-name:var(--font-brand)] text-[clamp(14px,1.5vw,24px)] font-semibold uppercase">
                 {total} {total === 1 ? 'Punkt' : 'Punkte'}
               </span>
-              <button type="button" className="wp-btn wp-btn-primary" disabled={total === 0} onClick={toFinish}>Fertig</button>
+              <button type="button" className="wp-btn wp-btn-primary" disabled={phase === 'gallery' && total === 0} onClick={toFinish}>
+                {phase === 'ranked' ? 'Podest zeigen' : 'Fertig'}
+              </button>
             </div>
           </header>
           <div ref={areaRef} className="min-h-0 flex-1 px-6 pb-14 md:px-10">
             <div className="flex h-full w-full items-center justify-center">
               <ul className="relative" style={{ width: gridW, height: gridH }}>
-                {ranked.map((img, i) => {
+                {ordered.map((img, i) => {
                   const p = pts(img.id)
-                  const rank = p > 0 && i < 3 ? i : -1
+                  const rank = phase === 'ranked' && p > 0 && i < 3 ? i : -1
                   return (
                     <li
                       key={img.id}
@@ -232,11 +241,11 @@ export function Praesentation() {
                     >
                       <button
                         type="button"
-                        aria-label={`Bild Nr. ${img.n}, ${p} ${p === 1 ? 'Punkt' : 'Punkte'}. Klick gibt einen Punkt, Umschalt plus Klick nimmt einen weg.`}
-                        className="relative block h-full w-full cursor-pointer overflow-hidden rounded-[14px] bg-mist"
+                        aria-label={`Bild Nr. ${img.n}, ${p} ${p === 1 ? 'Punkt' : 'Punkte'}.${phase === 'gallery' ? ' Klick gibt einen Punkt, Umschalt plus Klick nimmt einen weg.' : ''}`}
+                        className={`relative block h-full w-full overflow-hidden rounded-[14px] bg-mist ${phase === 'gallery' ? 'cursor-pointer' : 'cursor-default'}`}
                         style={rank >= 0 ? { outline: `${Math.max(4, grid.width / 60)}px solid ${RANK_COLORS[rank]}`, outlineOffset: 2 } : undefined}
-                        onClick={e => vote(img.id, e.shiftKey ? -1 : 1)}
-                        onContextMenu={e => { e.preventDefault(); vote(img.id, -1) }}
+                        onClick={e => { if (phase === 'gallery') vote(img.id, e.shiftKey ? -1 : 1) }}
+                        onContextMenu={e => { e.preventDefault(); if (phase === 'gallery') vote(img.id, -1) }}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={img.url} alt="" draggable={false} className="block h-full w-full object-contain" />
@@ -300,11 +309,16 @@ export function Praesentation() {
               <span>Umschalt oder Rechtsklick: −1</span>
               <span>Z rückgängig</span>
               <button type="button" className="underline underline-offset-2" onClick={resetVotes}>Punkte zurücksetzen</button>
-              <span>Enter: Fertig</span>
+              <span>Enter: Fertig (Rangliste)</span>
+            </>
+          ) : phase === 'ranked' ? (
+            <>
+              <span>Enter oder →: Podest</span>
+              <span>← zurück zur Punktevergabe</span>
             </>
           ) : phase === 'podium' ? (
             <>
-              <span>← zurück zur Wertung</span>
+              <span>← zurück zur Rangliste</span>
               <span>F Vollbild</span>
             </>
           ) : (
