@@ -129,7 +129,7 @@ export function KuhApp() {
         <header className="max-w-[900px]">
           <p className="t-caption text-amber">Kreativ-Challenge</p>
           <h1 className="t-h1 mt-2 text-white md:text-[64px] md:leading-[66px]">Die Kuh muss auf die Alp!</h1>
-          <p className="t-lead mt-4 text-white">Lade hier euer Ergebnis hoch. Alle Bilder erscheinen sofort in der Galerie.</p>
+          <p className="t-lead mt-4 text-white">Lade hier dein Ergebnis hoch. Alle Bilder erscheinen sofort in der Galerie.</p>
         </header>
 
         <section className="mt-8 md:mt-10" aria-label="Bild hochladen">
@@ -144,21 +144,20 @@ export function KuhApp() {
               setDragging(false)
               void handleFiles(e.dataTransfer.files)
             }}
-            className={`rounded-[var(--radius-bubble)] p-3 transition-colors md:p-4 ${dragging ? 'bg-amber' : 'bg-mist'}`}
+            className={`rounded-[var(--radius-card)] p-2 transition-colors ${dragging ? 'bg-amber' : 'bg-mist'}`}
           >
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={status.kind === 'busy'}
-              className="flex w-full cursor-pointer flex-col items-center gap-4 rounded-[var(--radius-card)] border-[3px] border-dashed border-violett px-6 py-10 text-center disabled:cursor-default md:py-14"
+              className="flex w-full cursor-pointer flex-col items-center gap-3 rounded-[14px] border-[3px] border-dashed border-violett px-5 py-4 text-center disabled:cursor-default sm:flex-row sm:gap-5 sm:text-left"
             >
-              <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#6b11fe" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <svg className="shrink-0" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6b11fe" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M12 16V4M12 4l-5 5M12 4l5 5" />
                 <path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
               </svg>
-              <span className="t-h2 text-black">Bild hierher ziehen</span>
-              <span className="t-body text-black">oder tippen und ein Bild aus den Fotos wählen</span>
-              <span className="wp-btn wp-btn-primary mt-1">{status.kind === 'busy' ? 'Wird hochgeladen …' : 'Bild auswählen'}</span>
+              <span className="t-lead flex-1 text-black">Bild hierher ziehen oder tippen</span>
+              <span className="wp-btn wp-btn-primary">{status.kind === 'busy' ? 'Wird hochgeladen …' : 'Bild auswählen'}</span>
             </button>
             <input
               ref={inputRef}
@@ -187,7 +186,7 @@ export function KuhApp() {
           {loaded && images.length === 0 ? (
             <p className="t-lead text-white">Noch kein Bild da. Sei die erste Person!</p>
           ) : (
-            <ul className="columns-1 gap-4 min-[520px]:columns-2 lg:columns-3 xl:columns-4">
+            <ul className="columns-1 gap-5 min-[700px]:columns-2 min-[1500px]:columns-3">
               {images.map(img => (
                 <li key={img.id} className="mb-4 break-inside-avoid">
                   <button
