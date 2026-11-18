@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: { default: 'Sessions', template: '%s 
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { admin } = await requireAdmin()
-  const nav = [{ href: '/admin', label: 'Sessions' }, ...(admin.role === 'admin' ? [{ href: '/admin/team', label: 'Team' }] : [])]
+  const nav = [{ href: '/admin', label: 'Sessions' }, { href: '/admin/kuh', label: 'Kreativ-Challenge' }, ...(admin.role === 'admin' ? [{ href: '/admin/team', label: 'Team' }] : [])]
   return (
     <div className="min-h-dvh bg-mist pb-20">
       <div className="bg-violett pb-5">
