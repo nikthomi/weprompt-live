@@ -180,7 +180,7 @@ export function KuhApp() {
           >
             {/* Ein Block: links der Name, rechts das Bild. Gleiche Höhe, ein Rahmen. */}
             <label htmlFor="kuh-name" className="flex flex-col justify-center rounded-[14px] bg-white px-5 py-3 sm:w-[340px] sm:shrink-0">
-              <span className="font-[family-name:var(--font-brand)] text-[15px] font-semibold text-black">1. Dein Name</span>
+              <span className="font-[family-name:var(--font-brand)] text-[15px] font-semibold text-black">Dein Name</span>
               <input id="kuh-name" ref={nameRef} maxLength={40} autoComplete="name" required placeholder="Vor- und Nachname"
                 className="mt-1 w-full border-b-2 border-black/15 bg-transparent py-1 text-[20px] text-black outline-none transition-colors placeholder:text-black/35 focus:border-violett"
                 value={name} onChange={e => { setName(e.target.value); if (status.kind === 'error') setStatus({ kind: 'idle', text: '' }) }} />
@@ -196,7 +196,7 @@ export function KuhApp() {
                 <path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
               </svg>
               <span className="flex-1">
-                <span className="block font-[family-name:var(--font-brand)] text-[15px] font-semibold text-black">2. Dein Bild</span>
+                <span className="block font-[family-name:var(--font-brand)] text-[15px] font-semibold text-black">Dein Bild</span>
                 <span className="t-body block text-black/70 sm:hidden lg:block">Hierher ziehen oder tippen</span>
               </span>
               <span className="wp-btn wp-btn-primary">{status.kind === 'busy' ? 'Wird hochgeladen …' : 'Bild auswählen'}</span>
