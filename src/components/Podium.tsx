@@ -9,16 +9,26 @@ import type { Ranking } from '@/lib/types'
  * weiteren Plätze. Alles in Container-Einheiten, damit Beamer und Vorschau
  * gleich aussehen. Die Animation läuft einmal beim Einblenden.
  */
+/**
+ * Takt der Siegermelodie (public/sounds/sieger.mp3): nach 2,3 s Aufbau drei
+ * Schläge «ta, ta, taaa» bei 2,30 s, 4,47 s und 6,66 s. Jeder Avatar landet
+ * auf seinem Schlag: Platz 3, Platz 2, Platz 1. Die Stufe wächst vorher.
+ */
+const HITS = { third: 2.3, second: 4.47, first: 6.66 }
+const POP_PEAK = 0.42 // wp-pop erreicht seine volle Grösse nach 60 % von 0,7 s
+const AVATAR_AFTER_STEP = 0.55 // Avatar folgt der wachsenden Stufe
+const stepAt = (hit: number) => hit - POP_PEAK - AVATAR_AFTER_STEP
+
 const SLOTS = [
   // Reihenfolge auf der Bühne: 2 – 1 – 3
-  { index: 1, height: 64, delay: 2.4 },
-  { index: 0, height: 100, delay: 4.4 },
-  { index: 2, height: 38, delay: 0.6 },
+  { index: 1, height: 64, delay: stepAt(HITS.second) },
+  { index: 0, height: 100, delay: stepAt(HITS.first) },
+  { index: 2, height: 38, delay: stepAt(HITS.third) },
 ]
 
 const CONFETTI = Array.from({ length: 36 }, (_, i) => ({
   left: (i * 37) % 100,
-  delay: 5.2 + ((i * 7) % 10) / 10,
+  delay: HITS.first + ((i * 7) % 10) / 12,
   duration: 2.6 + ((i * 13) % 10) / 8,
   color: ['#F6CA70', '#FFFFFF', '#F64462', '#F2F0ED'][i % 4],
   size: 0.7 + ((i * 5) % 4) / 5,
@@ -62,7 +72,7 @@ export function Podium({ ranking, sound = false }: { ranking: Ranking | null | u
           const first = slot.index === 0
           return (
             <div key={slot.index} className="flex h-full min-h-0 w-[22cqw] flex-col items-center justify-end">
-              <div className="wp-pop flex flex-col items-center text-center" style={{ animationDelay: `${slot.delay + 0.55}s` }}>
+              <div className="wp-pop flex flex-col items-center text-center" style={{ animationDelay: `${slot.delay + AVATAR_AFTER_STEP}s` }}>
                 <Avatar id={p.avatar} label={p.name}
                   className={`${first ? 'h-[13cqh] w-[13cqh] ring-[0.6cqh]' : 'h-[11cqh] w-[11cqh] ring-[0.4cqh]'} rounded-full ${first ? 'ring-amber' : 'ring-white/80'}`} />
                 <p className={`mt-[1.2cqh] max-w-[22cqw] truncate font-[family-name:var(--font-brand)] font-semibold leading-tight ${first ? 'text-[clamp(14px,2.6cqw,52px)]' : 'text-[clamp(12px,2cqw,40px)]'}`}>{p.name}</p>
@@ -78,7 +88,7 @@ export function Podium({ ranking, sound = false }: { ranking: Ranking | null | u
       </div>
 
       {rest.length ? (
-        <ol className="wp-fade mt-[2.4cqh] grid grid-flow-col grid-cols-2 gap-x-[3cqw] gap-y-[0.8cqh] border-t border-white/15 pt-[2cqh]" style={{ animationDelay: '6.4s', gridTemplateRows: `repeat(${Math.ceil(rest.length / 2)}, auto)` }}>
+        <ol className="wp-fade mt-[2.4cqh] grid grid-flow-col grid-cols-2 gap-x-[3cqw] gap-y-[0.8cqh] border-t border-white/15 pt-[2cqh]" style={{ animationDelay: `${HITS.first + 1.6}s`, gridTemplateRows: `repeat(${Math.ceil(rest.length / 2)}, auto)` }}>
           {rest.map((p, i) => (
             <li key={i} className="stage-sub flex items-center gap-[1cqw] text-white/80">
               <span className="w-[2.4cqw] text-right tabular-nums text-white/55">{p.rank}.</span>

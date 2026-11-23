@@ -544,7 +544,7 @@ function ProfileForm({ code, pid, current, onSaved, onCancel }: {
 function MyResult({ me, profile }: { me: MyRank | null; profile: Profile | null }) {
   const [shown, setShown] = useState(false)
   useEffect(() => {
-    const t = setTimeout(() => setShown(true), 7500)
+    const t = setTimeout(() => setShown(true), 9500) // nach dem Sieg auf dem Beamer (Podium.tsx)
     return () => clearTimeout(t)
   }, [])
   if (!shown) return <Message title="Schau auf die Leinwand!">Gleich siehst du, wer gewonnen hat.</Message>
