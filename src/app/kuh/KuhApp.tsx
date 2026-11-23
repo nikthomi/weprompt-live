@@ -165,15 +165,6 @@ export function KuhApp() {
               <button type="button" className="wp-btn-quiet shrink-0 self-start sm:self-auto" disabled={status.kind === 'busy'} onClick={() => void deleteMine()}>Mein Bild löschen</button>
             </div>
           ) : (
-          <>
-          <div className="mb-3 max-w-[560px] rounded-[var(--radius-card)] bg-mist px-5 pb-4 pt-4">
-            <div className="wp-field">
-              <label htmlFor="kuh-name">Dein Name</label>
-              <input id="kuh-name" ref={nameRef} className="wp-input" maxLength={40} autoComplete="name" required
-                value={name} onChange={e => { setName(e.target.value); if (status.kind === 'error') setStatus({ kind: 'idle', text: '' }) }} />
-              <span className="wp-hint">Erscheint erst auf dem Siegerpodest, in der Galerie bleibt dein Bild anonym.</span>
-            </div>
-          </div>
           <div
             onDragOver={e => {
               e.preventDefault()
@@ -185,19 +176,29 @@ export function KuhApp() {
               setDragging(false)
               void handleFiles(e.dataTransfer.files)
             }}
-            className={`rounded-[var(--radius-card)] p-2 transition-colors ${dragging ? 'bg-amber' : 'bg-mist'}`}
+            className={`flex flex-col gap-2 rounded-[var(--radius-card)] p-2 transition-colors sm:flex-row ${dragging ? 'bg-amber' : 'bg-mist'}`}
           >
+            {/* Ein Block: links der Name, rechts das Bild. Gleiche Höhe, ein Rahmen. */}
+            <label htmlFor="kuh-name" className="flex flex-col justify-center rounded-[14px] bg-white px-5 py-3 sm:w-[340px] sm:shrink-0">
+              <span className="font-[family-name:var(--font-brand)] text-[15px] font-semibold text-black">1. Dein Name</span>
+              <input id="kuh-name" ref={nameRef} maxLength={40} autoComplete="name" required placeholder="Vor- und Nachname"
+                className="mt-1 w-full border-b-2 border-black/15 bg-transparent py-1 text-[20px] text-black outline-none transition-colors placeholder:text-black/35 focus:border-violett"
+                value={name} onChange={e => { setName(e.target.value); if (status.kind === 'error') setStatus({ kind: 'idle', text: '' }) }} />
+            </label>
             <button
               type="button"
               onClick={() => { if (!needName()) inputRef.current?.click() }}
               disabled={status.kind === 'busy'}
-              className="flex w-full cursor-pointer flex-col items-center gap-3 rounded-[14px] border-[3px] border-dashed border-violett px-5 py-4 text-center disabled:cursor-default sm:flex-row sm:gap-5 sm:text-left"
+              className="flex flex-1 cursor-pointer flex-col items-center gap-3 rounded-[14px] border-[3px] border-dashed border-violett px-5 py-4 text-center disabled:cursor-default sm:flex-row sm:gap-5 sm:text-left"
             >
               <svg className="shrink-0" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6b11fe" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M12 16V4M12 4l-5 5M12 4l5 5" />
                 <path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
               </svg>
-              <span className="t-lead flex-1 text-black">Bild hierher ziehen oder tippen</span>
+              <span className="flex-1">
+                <span className="block font-[family-name:var(--font-brand)] text-[15px] font-semibold text-black">2. Dein Bild</span>
+                <span className="t-body block text-black/70 sm:hidden lg:block">Hierher ziehen oder tippen</span>
+              </span>
               <span className="wp-btn wp-btn-primary">{status.kind === 'busy' ? 'Wird hochgeladen …' : 'Bild auswählen'}</span>
             </button>
             <input
@@ -212,10 +213,9 @@ export function KuhApp() {
               }}
             />
           </div>
-          </>
           )}
-          <p role="status" aria-live="polite" className={`t-lead mt-4 min-h-[30px] ${status.kind === 'error' ? 'text-amber' : 'text-white'}`}>
-            {status.text}
+          <p role="status" aria-live="polite" className={`t-body mt-3 min-h-[26px] ${status.kind === 'error' ? 'font-semibold text-amber' : 'text-white/80'}`}>
+            {status.text || (mine ? '' : 'Dein Name erscheint erst auf dem Siegerpodest. In der Galerie bleibt dein Bild anonym.')}
           </p>
         </section>
 
