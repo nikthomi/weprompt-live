@@ -11,12 +11,34 @@ import { clientKey, json } from '@/lib/public-api'
  * Moderation das Bild oder die Person selbst (DELETE), darf sie erneut hochladen. Das ist eine Spielregel, kein
  * Sicherheitsmerkmal: Mit einem privaten Fenster oder einem zweiten Gerät lässt sie sich umgehen.
  * Der Rest des Schutzes: Dateityp am Inhalt, Grösse, Gesamtzahl, Rate Limit pro Netz.
+ *
+ * Name: Beim Hochladen gibt die Person ihren Namen ein. Er steht kodiert (base64url) im
+ * Dateinamen hinter «--», so braucht es keine Tabelle. Ältere Bilder haben keinen Namen.
  */
 const BUCKET = 'kuh'
 const MAX_BYTES = 4_500_000 // Vercel erlaubt höchstens 4,5 MB pro Anfrage
 const MAX_IMAGES = 300
 const COOKIE = 'kuh_bild'
-const NAME_RE = /^[a-z0-9-]{4,60}\.(jpg|png|webp)$/
+const NAME_RE = /^[a-z0-9-]{4,60}(--[A-Za-z0-9_-]{1,240})?\.(jpg|png|webp)$/
+const MAX_NAME = 40
+
+/** Name aus dem Formular: Steuerzeichen raus, Leerraum zusammenfassen, Länge prüfen. */
+function cleanName(v: unknown) {
+  if (typeof v !== 'string') return ''
+  return v.replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim()
+}
+
+/** Name aus dem Dateinamen lesen (null bei älteren Bildern ohne Namen). */
+function nameOf(file: string) {
+  const at = file.indexOf('--')
+  if (at < 0) return null
+  try {
+    const n = Buffer.from(file.slice(at + 2).replace(/\.[a-z]+$/, ''), 'base64url').toString('utf8')
+    return cleanName(n).slice(0, MAX_NAME) || null
+  } catch {
+    return null
+  }
+}
 
 function sniff(b: Uint8Array): { type: string; ext: string } | null {
   if (b.length > 12 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return { type: 'image/jpeg', ext: 'jpg' }
@@ -68,6 +90,7 @@ export async function GET(req: NextRequest) {
       id: f.name,
       n: i + 1,
       url: supabase.storage.from(BUCKET).getPublicUrl(f.name).data.publicUrl,
+      name: nameOf(f.name),
     }))
     const mine = ownName(req, files.map(f => f.name))
     return json({ images, mine: mine ? { id: mine, n: images.find(i => i.id === mine)?.n ?? null } : null })
@@ -81,13 +104,16 @@ export async function POST(req: NextRequest) {
   if (Number(req.headers.get('content-length') ?? 0) > MAX_BYTES + 20_000) return json({ error: 'too_big', message: 'Das Bild ist zu gross.' }, 413)
 
   let file: File | null = null
+  let person = ''
   try {
     const form = await req.formData()
     const f = form.get('file')
     file = f instanceof File ? f : null
+    person = cleanName(form.get('name'))
   } catch {
     return json({ error: 'invalid', message: 'Das hat nicht geklappt. Bitte nochmals versuchen.' }, 400)
   }
+  if (!person || person.length > MAX_NAME) return json({ error: 'name', message: `Gib deinen Namen ein (höchstens ${MAX_NAME} Zeichen).` }, 400)
   if (!file || file.size === 0) return json({ error: 'invalid', message: 'Bitte wähle ein Bild aus.' }, 400)
   if (file.size > MAX_BYTES) return json({ error: 'too_big', message: 'Das Bild ist zu gross.' }, 413)
 
@@ -109,7 +135,7 @@ export async function POST(req: NextRequest) {
       return json({ error: 'already', message: 'Du hast schon ein Bild hochgeladen. Pro Person ist eines möglich.' }, 409)
     }
     if (existing.length >= MAX_IMAGES) return json({ error: 'full', message: 'Die Galerie ist voll.' }, 409)
-    const name = `${Date.now().toString(36)}-${randomBytes(5).toString('hex')}.${kind.ext}`
+    const name = `${Date.now().toString(36)}-${randomBytes(5).toString('hex')}--${Buffer.from(person, 'utf8').toString('base64url')}.${kind.ext}`
     const { error } = await supabase.storage.from(BUCKET).upload(name, bytes, { contentType: kind.type, cacheControl: '31536000', upsert: false })
     if (error) throw error
     const res = json({ ok: true, id: name }) as NextResponse

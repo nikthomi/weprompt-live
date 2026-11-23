@@ -4,6 +4,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { useKuhImages, type KuhImg } from '../useKuhImages'
+import { Confetti } from '@/components/Confetti'
+import { PodiumSound } from '@/components/PodiumSound'
+import { AVATAR_AFTER_STEP, HIT_BY_PLACE, stepAt } from '@/lib/podium-timing'
 
 const GAP = 14
 const CELL_ASPECT = 4 / 3
@@ -279,7 +282,10 @@ export function Praesentation() {
         </>
       ) : (
         <>
-          <header className="flex items-center justify-between gap-4 px-6 pb-2 pt-5 md:px-10">
+          {/* Siegermelodie im Takt: Platz 3, 2, 1 landen auf «ta, ta, taaa», danach muht die Kuh. */}
+          <PodiumSound moo />
+          <Confetti unit="vw" className="inset-0 z-10" />
+          <header className="wp-fade flex items-center justify-between gap-4 px-6 pb-2 pt-5 md:px-10">
             <h1 className="font-[family-name:var(--font-brand)] text-[clamp(26px,3.4vw,56px)] font-semibold leading-none">Die Siegerbilder</h1>
             <span className="rounded-full border-2 border-white px-5 py-1 font-[family-name:var(--font-brand)] text-[clamp(14px,1.5vw,24px)] font-semibold uppercase">{total} {total === 1 ? 'Punkt' : 'Punkte'} vergeben</span>
           </header>
@@ -289,10 +295,13 @@ export function Praesentation() {
                 const tw = WEIGHT[c.k] * u
                 const colW = c.shown.length * tw + (c.shown.length - 1) * TILE_GAP
                 const color = RANK_COLORS[c.k]
-                const label = c.shown.map(i => `Nr. ${i.n}`).join(' und ') + (c.more ? ` und ${c.more} weitere` : '')
+                const who = (i: KuhImg) => i.name ?? `Nr. ${i.n}`
+                const label = c.shown.map(who).join(' und ') + (c.more ? ` und ${c.more} weitere` : '')
+                const step = stepAt(HIT_BY_PLACE[c.k])
+                const land = { animationDelay: `${step + AVATAR_AFTER_STEP}s` }
                 return (
                   <div key={c.k} className="flex flex-col items-stretch" style={{ width: colW }}>
-                    <div className="flex items-end justify-center" style={{ gap: TILE_GAP }}>
+                    <div className="wp-pop flex items-end justify-center" style={{ gap: TILE_GAP, ...land }}>
                       {c.shown.map(img => (
                         <div
                           key={img.id}
@@ -300,19 +309,20 @@ export function Praesentation() {
                           style={{ width: tw, height: (tw * 3) / 4, border: `${Math.max(6, tw / 36)}px solid ${color}`, borderRadius: 22, boxShadow: '0 14px 44px rgba(0,0,0,.4)' }}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={img.url} alt={`Platz ${c.k + 1}: Bild Nr. ${img.n}`} className="block h-full w-full object-contain" />
+                          <img src={img.url} alt={`Platz ${c.k + 1}: ${who(img)}`} className="block h-full w-full object-contain" />
                         </div>
                       ))}
                     </div>
                     <div
-                      className="mt-3 flex flex-col items-center justify-center rounded-t-[16px]"
-                      style={{ height: PED[c.k], background: color, color: c.k === 2 ? '#ffffff' : '#1e1e1e' }}
+                      className="wp-grow mt-3 flex flex-col items-center justify-center rounded-t-[16px]"
+                      style={{ height: PED[c.k], background: color, color: c.k === 2 ? '#ffffff' : '#1e1e1e', animationDelay: `${step}s` }}
                     >
                       <span className="font-[family-name:var(--font-brand)] font-bold leading-none" style={{ fontSize: Math.max(24, PED[c.k] * 0.55) }}>{c.k + 1}</span>
                     </div>
-                    <p className="mt-2 text-center font-[family-name:var(--font-brand)] font-semibold uppercase leading-tight" style={{ fontSize: Math.max(14, Math.min(30, WEIGHT[c.k] * u / 14)) }}>
-                      {label} · {c.pts} {c.pts === 1 ? 'Punkt' : 'Punkte'}
-                    </p>
+                    <div className="wp-pop mt-2 text-center leading-tight" style={land}>
+                      <p className="font-[family-name:var(--font-brand)] font-semibold [overflow-wrap:anywhere]" style={{ fontSize: Math.max(16, Math.min(40, WEIGHT[c.k] * u / 11)) }}>{label}</p>
+                      <p className="mt-1 font-[family-name:var(--font-brand)] font-semibold uppercase text-white/75" style={{ fontSize: Math.max(12, Math.min(22, WEIGHT[c.k] * u / 18)) }}>{c.pts} {c.pts === 1 ? 'Punkt' : 'Punkte'}</p>
+                    </div>
                   </div>
                 )
               })}

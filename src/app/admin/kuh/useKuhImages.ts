@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
-export type KuhImg = { id: string; n: number; url: string }
+/** name: beim Hochladen eingegeben (ältere Bilder: null). */
+export type KuhImg = { id: string; n: number; url: string; name: string | null }
 
 /** Bilder der Kreativ-Challenge (älteste zuerst, n = Nummer) mit regelmässigem Nachladen. */
 export function useKuhImages(pollMs = 6000) {

@@ -70,7 +70,10 @@ export function KuhAdmin({ canClear }: { canClear: boolean }) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={img.url} alt={`Bild Nr. ${img.n}`} loading="lazy" decoding="async" className="block aspect-[4/3] w-full bg-black/5 object-contain" />
               <div className="flex items-center justify-between gap-3 px-4 py-3">
-                <span className="wp-tag compact !bg-amber font-bold">Nr. {img.n}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="wp-tag compact shrink-0 !bg-amber font-bold">Nr. {img.n}</span>
+                  <span className="truncate text-[15px] font-semibold">{img.name ?? 'ohne Namen'}</span>
+                </span>
                 <button type="button" className="font-[family-name:var(--font-brand)] text-[15px] font-semibold text-coral hover:underline disabled:opacity-50" disabled={pending} onClick={() => remove(img.id, img.n)}>
                   Löschen
                 </button>

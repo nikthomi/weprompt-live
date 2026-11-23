@@ -1,5 +1,6 @@
-import type { CSSProperties } from 'react'
 import { Avatar } from '@/components/Avatar'
+import { Confetti } from '@/components/Confetti'
+import { AVATAR_AFTER_STEP, HITS, stepAt } from '@/lib/podium-timing'
 import { PodiumSound } from '@/components/PodiumSound'
 import type { Ranking } from '@/lib/types'
 
@@ -9,31 +10,12 @@ import type { Ranking } from '@/lib/types'
  * weiteren Plätze. Alles in Container-Einheiten, damit Beamer und Vorschau
  * gleich aussehen. Die Animation läuft einmal beim Einblenden.
  */
-/**
- * Takt der Siegermelodie (public/sounds/sieger.mp3): nach 2,3 s Aufbau drei
- * Schläge «ta, ta, taaa» bei 2,30 s, 4,47 s und 6,66 s. Jeder Avatar landet
- * auf seinem Schlag: Platz 3, Platz 2, Platz 1. Die Stufe wächst vorher.
- */
-const HITS = { third: 2.3, second: 4.47, first: 6.66 }
-const POP_PEAK = 0.42 // wp-pop erreicht seine volle Grösse nach 60 % von 0,7 s
-const AVATAR_AFTER_STEP = 0.55 // Avatar folgt der wachsenden Stufe
-const stepAt = (hit: number) => hit - POP_PEAK - AVATAR_AFTER_STEP
-
 const SLOTS = [
   // Reihenfolge auf der Bühne: 2 – 1 – 3
   { index: 1, height: 64, delay: stepAt(HITS.second) },
   { index: 0, height: 100, delay: stepAt(HITS.first) },
   { index: 2, height: 38, delay: stepAt(HITS.third) },
 ]
-
-const CONFETTI = Array.from({ length: 36 }, (_, i) => ({
-  left: (i * 37) % 100,
-  delay: HITS.first + ((i * 7) % 10) / 12,
-  duration: 2.6 + ((i * 13) % 10) / 8,
-  color: ['#F6CA70', '#FFFFFF', '#F64462', '#F2F0ED'][i % 4],
-  size: 0.7 + ((i * 5) % 4) / 5,
-  turn: (i % 2 ? 1 : -1) * (240 + ((i * 29) % 300)),
-}))
 
 export function Podium({ ranking, sound = false }: { ranking: Ranking | null | undefined; sound?: boolean }) {
   // Zustand kommt vor den Zahlen an: bis dahin leer lassen, damit die Animation erst mit den Namen startet.
@@ -53,12 +35,7 @@ export function Podium({ ranking, sound = false }: { ranking: Ranking | null | u
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       {sound ? <PodiumSound /> : null}
-      <div className="pointer-events-none absolute inset-x-0 -top-[12cqh] bottom-0 overflow-hidden" aria-hidden>
-        {CONFETTI.map((c, i) => (
-          <span key={i} className="wp-confetti absolute top-0 block rounded-[2px]"
-            style={{ left: `${c.left}%`, width: `${c.size}cqw`, height: `${c.size * 1.6}cqw`, background: c.color, animationDelay: `${c.delay}s`, animationDuration: `${c.duration}s`, '--turn': `${c.turn}deg` } as CSSProperties} />
-        ))}
-      </div>
+      <Confetti className="inset-x-0 -top-[12cqh] bottom-0" />
 
       <div className="wp-fade flex items-baseline justify-between gap-[2cqw]">
         <h1 className="stage-title">Siegerpodest</h1>

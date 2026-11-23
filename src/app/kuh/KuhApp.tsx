@@ -20,7 +20,7 @@ async function shrink(file: File): Promise<Blob> {
   return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('shrink'))), 'image/jpeg', 0.86))
 }
 
-async function uploadOne(file: File): Promise<{ ok: true } | { ok: false; message: string }> {
+async function uploadOne(file: File, name: string): Promise<{ ok: true } | { ok: false; message: string }> {
   let blob: Blob = file
   try {
     blob = await shrink(file)
@@ -32,6 +32,7 @@ async function uploadOne(file: File): Promise<{ ok: true } | { ok: false; messag
   }
   const body = new FormData()
   body.append('file', blob, 'bild.jpg')
+  body.append('name', name)
   try {
     const res = await fetch('/api/kuh', { method: 'POST', body })
     if (res.ok) return { ok: true }
@@ -49,7 +50,15 @@ export function KuhApp() {
   const [status, setStatus] = useState<Status>({ kind: 'idle', text: '' })
   const [dragging, setDragging] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
+  const [name, setName] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
+  const needName = () => {
+    if (name.trim()) return false
+    setStatus({ kind: 'error', text: 'Gib zuerst deinen Namen ein. Er erscheint auf dem Siegerpodest.' })
+    nameRef.current?.focus()
+    return true
+  }
 
   const load = useCallback(async () => {
     try {
@@ -99,8 +108,9 @@ export function KuhApp() {
       setStatus({ kind: 'error', text: 'Bitte ein Bild auswählen (JPG, PNG oder WebP).' })
       return
     }
+    if (needName()) return
     setStatus({ kind: 'busy', text: 'Bild wird hochgeladen …' })
-    const r = await uploadOne(file)
+    const r = await uploadOne(file, name.trim())
     await load()
     if (!r.ok) {
       setStatus({ kind: 'error', text: r.message })
@@ -155,6 +165,15 @@ export function KuhApp() {
               <button type="button" className="wp-btn-quiet shrink-0 self-start sm:self-auto" disabled={status.kind === 'busy'} onClick={() => void deleteMine()}>Mein Bild löschen</button>
             </div>
           ) : (
+          <>
+          <div className="mb-3 max-w-[560px] rounded-[var(--radius-card)] bg-mist px-5 pb-4 pt-4">
+            <div className="wp-field">
+              <label htmlFor="kuh-name">Dein Name</label>
+              <input id="kuh-name" ref={nameRef} className="wp-input" maxLength={40} autoComplete="name" required
+                value={name} onChange={e => { setName(e.target.value); if (status.kind === 'error') setStatus({ kind: 'idle', text: '' }) }} />
+              <span className="wp-hint">Erscheint erst auf dem Siegerpodest, in der Galerie bleibt dein Bild anonym.</span>
+            </div>
+          </div>
           <div
             onDragOver={e => {
               e.preventDefault()
@@ -170,7 +189,7 @@ export function KuhApp() {
           >
             <button
               type="button"
-              onClick={() => inputRef.current?.click()}
+              onClick={() => { if (!needName()) inputRef.current?.click() }}
               disabled={status.kind === 'busy'}
               className="flex w-full cursor-pointer flex-col items-center gap-3 rounded-[14px] border-[3px] border-dashed border-violett px-5 py-4 text-center disabled:cursor-default sm:flex-row sm:gap-5 sm:text-left"
             >
@@ -193,6 +212,7 @@ export function KuhApp() {
               }}
             />
           </div>
+          </>
           )}
           <p role="status" aria-live="polite" className={`t-lead mt-4 min-h-[30px] ${status.kind === 'error' ? 'text-amber' : 'text-white'}`}>
             {status.text}
