@@ -10,9 +10,9 @@ import type { Ranking } from '@/lib/types'
  */
 const SLOTS = [
   // Reihenfolge auf der Bühne: 2 – 1 – 3
-  { index: 1, height: 68, delay: 2.4 },
+  { index: 1, height: 64, delay: 2.4 },
   { index: 0, height: 100, delay: 4.4 },
-  { index: 2, height: 48, delay: 0.6 },
+  { index: 2, height: 38, delay: 0.6 },
 ]
 
 const CONFETTI = Array.from({ length: 36 }, (_, i) => ({
@@ -59,15 +59,15 @@ export function Podium({ ranking }: { ranking: Ranking | null | undefined }) {
           if (!p) return <div key={slot.index} className="w-[22cqw]" />
           const first = slot.index === 0
           return (
-            <div key={slot.index} className="flex h-full w-[22cqw] flex-col items-center justify-end">
+            <div key={slot.index} className="flex h-full min-h-0 w-[22cqw] flex-col items-center justify-end">
               <div className="wp-pop flex flex-col items-center text-center" style={{ animationDelay: `${slot.delay + 0.55}s` }}>
                 <Avatar id={p.avatar} label={p.name}
-                  className={`${first ? 'h-[15cqh] w-[15cqh] ring-[0.6cqh]' : 'h-[11cqh] w-[11cqh] ring-[0.4cqh]'} rounded-full ${first ? 'ring-amber' : 'ring-white/80'}`} />
+                  className={`${first ? 'h-[13cqh] w-[13cqh] ring-[0.6cqh]' : 'h-[11cqh] w-[11cqh] ring-[0.4cqh]'} rounded-full ${first ? 'ring-amber' : 'ring-white/80'}`} />
                 <p className={`mt-[1.2cqh] max-w-[22cqw] truncate font-[family-name:var(--font-brand)] font-semibold leading-tight ${first ? 'text-[clamp(14px,2.6cqw,52px)]' : 'text-[clamp(12px,2cqw,40px)]'}`}>{p.name}</p>
                 <p className="stage-sub mb-[1.4cqh] text-white/75">{p.points.toLocaleString('de-CH')} Punkte</p>
               </div>
-              <div className={`wp-grow flex w-full items-start justify-center rounded-t-[min(1.4cqw,18px)] pt-[1.6cqh] ${first ? 'bg-amber text-black' : 'bg-white/15 text-white'}`}
-                style={{ height: `${slot.height * (rest.length ? 0.3 : 0.38)}cqh`, animationDelay: `${slot.delay}s` }}>
+              <div className={`wp-grow flex w-full shrink-0 items-start justify-center rounded-t-[min(1.4cqw,18px)] pt-[1.6cqh] ${first ? 'bg-amber text-black' : 'bg-white/15 text-white'}`}
+                style={{ height: `${slot.height * (rest.length ? 0.25 : 0.34)}cqh`, animationDelay: `${slot.delay}s` }}>
                 <span className="stage-num text-[clamp(18px,5cqh,90px)] leading-none">{p.rank}</span>
               </div>
             </div>
