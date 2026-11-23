@@ -82,6 +82,10 @@ export type PublicState = {
   showQr: boolean
   /** Quiz: Lösung wird gezeigt. */
   reveal: boolean
+  /** Quiz: Auswertung (Podest) läuft. */
+  leaderboard: boolean
+  /** Die Session enthält Quizfragen: Teilnehmende wählen Name und Avatar. */
+  hasQuiz: boolean
   /** Quiz mit Timer: Ende der Antwortzeit (ms seit 1970, Serveruhr). */
   deadline: number | null
   /** Serveruhr beim Erstellen der Meldung, um die Uhr des Geräts abzugleichen. */
@@ -90,7 +94,19 @@ export type PublicState = {
   question: PublicQuestion | null
 }
 
-export type JoinState = PublicState & { answered: boolean; myAnswer?: AnswerValue | null }
+export type Profile = { name: string; avatar: string }
+export type MyRank = { rank: number; points: number; correct: number; players: number }
+
+export type JoinState = PublicState & {
+  answered: boolean
+  myAnswer?: AnswerValue | null
+  /** undefined = noch nicht vom Server geladen, null = noch kein Name gewählt. */
+  profile?: Profile | null
+  me?: MyRank | null
+}
+
+export type RankEntry = { rank: number; name: string; avatar: string; points: number; correct: number }
+export type Ranking = { total: number; players: number; top: RankEntry[] }
 
 export type WordResult = { key: string; text: string; count: number; hidden: boolean }
 export type OpenItem = { id: string; text: string; status: 'visible' | 'pending' | 'hidden'; at: string }
@@ -103,7 +119,15 @@ export type Results =
   | { type: 'open'; respondents: number; items: OpenItem[] }
   | { type: 'board'; respondents: number; items: BoardItem[] }
 
-export type Snapshot = PublicState & { participants: number; responses: number; results: Results | null }
+export type Snapshot = PublicState & {
+  participants: number
+  responses: number
+  results: Results | null
+  /** Warteraum: wer schon Name und Avatar gewählt hat (nur bei Sessions mit Quiz). */
+  lobby?: Profile[] | null
+  /** Auswertung: Rangliste (nur während leaderboard). */
+  ranking?: Ranking | null
+}
 
 export type AnswerValue =
   | { options: string[] }

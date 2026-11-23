@@ -3,6 +3,8 @@ import { ResultView } from '@/components/results/ResultView'
 import { QrCode } from '@/components/QrCode'
 import { Logo } from '@/components/ui'
 import { QuizStage, QuizStatus } from '@/components/QuizStage'
+import { Podium } from '@/components/Podium'
+import { Avatar } from '@/components/Avatar'
 import type { Snapshot } from '@/lib/types'
 
 /**
@@ -21,7 +23,7 @@ export function Stage({ snap, joinUrl, joinLabel }: { snap: Snapshot; joinUrl: s
       <div className="flex h-full flex-col px-[6cqw] pb-[4.5cqh] pt-[5cqh]">
         <header className="flex items-center justify-between gap-[2cqw]">
           <Logo tone="weiss" className="h-[clamp(12px,2.8cqh,40px)] w-auto opacity-90" />
-          {q && !snap.showQr && !ended ? (
+          {q && !snap.showQr && !ended && !snap.leaderboard ? (
             <p className="stage-meta !normal-case !tracking-normal text-white/70">
               {host} · Code <span className="tracking-[.1em] text-white">{snap.code}</span>
             </p>
@@ -34,6 +36,8 @@ export function Stage({ snap, joinUrl, joinLabel }: { snap: Snapshot; joinUrl: s
               <p className="stage-title">Danke fürs Mitmachen!</p>
               <p className="stage-sub mt-[2cqh] text-white/70">{snap.title}</p>
             </Center>
+          ) : snap.leaderboard ? (
+            <Podium ranking={snap.ranking} />
           ) : !q || snap.showQr ? (
             <Welcome snap={snap} joinUrl={joinUrl} host={host} />
           ) : q.type === 'quiz' ? (
@@ -67,7 +71,7 @@ export function Stage({ snap, joinUrl, joinLabel }: { snap: Snapshot; joinUrl: s
           )}
         </div>
 
-        {q && q.type !== 'board' && !ended && !snap.showQr ? (
+        {q && q.type !== 'board' && !ended && !snap.showQr && !snap.leaderboard ? (
           <footer className="stage-sub mt-[3cqh] flex items-center gap-[1cqw] text-white/60">
             {q.type === 'quiz' ? <QuizStatus snap={snap} /> : <span>{snap.votingOpen ? 'Abstimmung läuft' : 'Abstimmung geschlossen'}</span>}
             <span aria-hidden>·</span>
@@ -91,6 +95,16 @@ function Welcome({ snap, joinUrl, host }: { snap: Snapshot; joinUrl: string; hos
         <p className="stage-sub mt-[5cqh] text-white/75">Scanne den QR-Code oder öffne {host} und gib diesen Code ein:</p>
         <p className="stage-num mt-[2cqh] text-[clamp(28px,7cqw,140px)] leading-none tracking-[.12em]">{snap.code}</p>
         <p className="stage-sub mt-[5cqh] text-white/60">{snap.participants} {snap.participants === 1 ? 'Person ist' : 'Personen sind'} dabei</p>
+        {snap.lobby?.length ? (
+          <ul className="mt-[2.4cqh] flex max-h-[24cqh] flex-wrap gap-x-[1.2cqw] gap-y-[1cqh] overflow-hidden" aria-label="Mitspielende">
+            {snap.lobby.map((p, i) => (
+              <li key={i} className="wp-pop flex items-center gap-[.6cqw] rounded-full bg-white/10 py-[.4cqh] pl-[.4cqh] pr-[1cqw]">
+                <Avatar id={p.avatar} className="h-[4.4cqh] w-[4.4cqh]" />
+                <span className="stage-sub max-w-[14cqw] truncate text-white">{p.name}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
       <div className="rounded-[min(1.6cqw,20px)] bg-white p-[1.4cqw]">
         <QrCode url={joinUrl} className="w-[min(30cqw,52cqh)]" />

@@ -3,18 +3,19 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useCountdown } from '@/lib/clock'
 import { LETTERS } from '@/components/results/Quiz'
+import { AVATARS, Avatar } from '@/components/Avatar'
 import { Logo } from '@/components/ui'
 import { anonClient } from '@/lib/supabase/browser'
 import { useLiveChannel } from '@/lib/realtime'
 import { hasAnswered, participantId, recordQuizResult, rememberAnswered, scoreFrom, storedAnswer, useStoredQuiz } from '@/lib/participant'
-import { optionsOf, type AnswerValue, type JoinState, type PublicQuestion, type PublicState } from '@/lib/types'
+import { optionsOf, type AnswerValue, type JoinState, type MyRank, type Profile, type PublicQuestion, type PublicState } from '@/lib/types'
 
 export function Participant({ code, initial }: { code: string; initial: JoinState }) {
   const [state, setState] = useState<JoinState>(initial)
   const pid = useRef<string | null>(null)
   const version = useRef(initial.version)
 
-  const apply = useCallback((next: PublicState, answered?: boolean) => {
+  const apply = useCallback((next: PublicState | JoinState, answered?: boolean) => {
     if (next.version < version.current) return // verspätete Meldung
     version.current = next.version
     setState(prev => {
@@ -23,6 +24,9 @@ export function Participant({ code, initial }: { code: string; initial: JoinStat
         ...next,
         answered: answered ?? (next.question ? (same ? prev.answered : hasAnswered(code, next.question.id)) : false),
         myAnswer: same ? prev.myAnswer : next.question ? (storedAnswer(code, next.question.id) as AnswerValue | undefined) ?? null : null,
+        // Zustandsmeldungen kennen weder Profil noch Platz: die letzten Werte behalten.
+        profile: 'profile' in next ? next.profile : prev.profile,
+        me: 'me' in next ? next.me : prev.me,
       }
     })
   }, [code])
@@ -56,6 +60,18 @@ export function Participant({ code, initial }: { code: string; initial: JoinStat
     onResync: () => refresh(true),
   })
 
+  // Auswertung oder Ende: den eigenen Platz beim Server abholen.
+  const wantsRank = state.leaderboard || state.status === 'ended'
+  useEffect(() => {
+    if (wantsRank) refresh()
+  }, [wantsRank, refresh])
+
+  const [editing, setEditing] = useState(false)
+  const saveProfile = useCallback((p: Profile) => {
+    setEditing(false)
+    setState(s => ({ ...s, profile: p }))
+  }, [])
+
   const markAnswered = useCallback((questionId: string, value: AnswerValue) => {
     rememberAnswered(code, questionId, value)
     setState(s => (s.question?.id === questionId ? { ...s, answered: true, myAnswer: value } : s))
@@ -64,11 +80,24 @@ export function Participant({ code, initial }: { code: string; initial: JoinStat
   return (
     <main className="on-violett flex min-h-dvh flex-col px-6 pb-10 pt-6">
       <header className="mx-auto flex w-full max-w-[560px] items-center justify-between gap-4">
-        <Logo tone="weiss" className="h-5 w-auto opacity-90" />
-        <p className="t-small min-w-0 truncate text-right text-white/60">{state.title}</p>
+        <Logo tone="weiss" className="h-5 w-auto shrink-0 opacity-90" />
+        {state.hasQuiz && state.profile && !editing ? (
+          <button type="button" onClick={() => setEditing(true)} className="flex min-w-0 items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3 text-white transition-colors hover:bg-white/20" aria-label={`${state.profile.name}, Name oder Avatar ändern`}>
+            <Avatar id={state.profile.avatar} className="h-7 w-7 shrink-0" />
+            <span className="t-small min-w-0 truncate font-semibold">{state.profile.name}</span>
+          </button>
+        ) : (
+          <p className="t-small min-w-0 truncate text-right text-white/60">{state.title}</p>
+        )}
       </header>
       <div className="mx-auto flex w-full max-w-[560px] flex-1 flex-col pt-14">
-        <Screen state={state} code={code} pid={pid} onAnswered={markAnswered} onClosed={() => refresh()} />
+        {state.hasQuiz && state.status !== 'ended' && state.status !== 'archived' && state.profile === undefined ? (
+          <Message title="Einen Moment …">Du wirst verbunden.</Message>
+        ) : state.hasQuiz && state.status !== 'ended' && state.status !== 'archived' && (state.profile === null || editing) ? (
+          <ProfileForm code={code} pid={pid} current={state.profile ?? null} onSaved={saveProfile} onCancel={state.profile ? () => setEditing(false) : undefined} />
+        ) : (
+          <Screen state={state} code={code} pid={pid} onAnswered={markAnswered} onClosed={() => refresh()} />
+        )}
       </div>
       {connection === 'offline' ? (
         <p role="status" className="t-small mx-auto mt-6 rounded-[var(--radius-pill)] bg-white/15 px-4 py-2 text-white">Verbindung wird wiederhergestellt …</p>
@@ -84,7 +113,8 @@ function Screen({ state, code, pid, onAnswered, onClosed }: {
   onAnswered: (questionId: string, value: AnswerValue) => void
   onClosed: () => void
 }) {
-  if (state.status === 'ended' || state.status === 'archived') return <Ended code={code} />
+  if (state.status === 'ended' || state.status === 'archived') return <Ended code={code} me={state.me ?? null} profile={state.profile ?? null} />
+  if (state.leaderboard) return <MyResult key="rank" me={state.me ?? null} profile={state.profile ?? null} />
   const q = state.question
   if (!q) {
     return <Message title="Gleich geht's los.">Warte auf die nächste Frage.</Message>
@@ -422,11 +452,118 @@ function QuizScreen({ state, q, code, pid, onAnswered, onClosed }: {
   )
 }
 
-function Ended({ code }: { code: string }) {
+function Ended({ code, me, profile }: { code: string; me: MyRank | null; profile: Profile | null }) {
   const score = scoreFrom(useStoredQuiz(code))
   return (
-    <Message title="Danke fürs Mitmachen!">
-      {score.total ? `Im Quiz hattest du ${score.right} von ${score.total} richtig. ` : ''}Die Session ist beendet. Du kannst dieses Fenster schliessen.
-    </Message>
+    <>
+      {me ? <RankCard me={me} profile={profile} /> : null}
+      <Message title="Danke fürs Mitmachen!">
+        {!me && score.total ? `Im Quiz hattest du ${score.right} von ${score.total} richtig. ` : ''}Die Session ist beendet. Du kannst dieses Fenster schliessen.
+      </Message>
+    </>
+  )
+}
+
+/** Name und Avatar wählen, bevor das Quiz losgeht. */
+function ProfileForm({ code, pid, current, onSaved, onCancel }: {
+  code: string
+  pid: React.RefObject<string | null>
+  current: Profile | null
+  onSaved: (p: Profile) => void
+  onCancel?: () => void
+}) {
+  const [name, setName] = useState(current?.name ?? '')
+  const [avatar, setAvatar] = useState<string | null>(current?.avatar ?? null)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const ready = name.trim().length > 0 && avatar !== null
+
+  async function save() {
+    if (!ready || sending) {
+      if (!avatar) setError('Wähle einen Avatar.')
+      else if (!name.trim()) setError('Gib deinen Namen ein.')
+      return
+    }
+    setSending(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, participantId: pid.current ?? participantId(code), name: name.trim(), avatar }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) return onSaved({ name: data.name ?? name.trim(), avatar: data.avatar ?? avatar! })
+      setError(data.message ?? 'Das hat nicht geklappt. Bitte nochmals versuchen.')
+    } catch {
+      setError('Keine Verbindung. Prüfe dein Internet und versuche es nochmals.')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <form onSubmit={e => { e.preventDefault(); save() }} className="wp-fade flex flex-col">
+      <h1 className="t-h2 text-white">{current ? 'Name oder Avatar ändern' : 'Wer spielt mit?'}</h1>
+      <p className="t-body mt-3 text-white/75">Wähle einen Avatar und gib deinen Namen ein. Am Schluss erscheinen die besten drei auf dem Podest.</p>
+
+      <fieldset className="mt-8">
+        <legend className="t-small mb-3 text-white/70">Avatar</legend>
+        <div role="radiogroup" aria-label="Avatar wählen" className="grid grid-cols-4 gap-3">
+          {AVATARS.map(a => (
+            <button key={a.id} type="button" role="radio" aria-checked={avatar === a.id} aria-label={a.label}
+              onClick={() => { setAvatar(a.id); setError(null) }}
+              className={`aspect-square rounded-full p-1 transition-[transform,box-shadow] duration-200 ease-out active:scale-95 ${avatar === a.id ? 'scale-105 ring-4 ring-white' : avatar ? 'opacity-60 hover:opacity-100' : ''}`}>
+              <Avatar id={a.id} className="h-full w-full" />
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      <div className="mt-8 rounded-[var(--radius-card)] bg-white px-5 pb-5 pt-5">
+        <div className="wp-field">
+          <label htmlFor="name">Dein Name</label>
+          <input id="name" className="wp-input !text-[20px]" maxLength={20} autoComplete="nickname" enterKeyHint="go"
+            value={name} onChange={e => { setName(e.target.value); setError(null) }} />
+          <span className="wp-hint text-right">{name.length}/20</span>
+        </div>
+      </div>
+
+      {error ? <p role="alert" className="t-body mt-6 rounded-[16px] bg-white px-4 py-3 text-black ring-2 ring-coral">{error}</p> : null}
+      <div className="mt-8 flex flex-col gap-3">
+        <button type="submit" className="wp-btn wp-btn-primary wp-btn-block min-h-[58px]" aria-busy={sending} disabled={sending}>
+          {sending ? 'Wird gespeichert …' : current ? 'Speichern' : 'Mitspielen'}
+        </button>
+        {onCancel ? <button type="button" className="t-body py-2 text-white/75 underline underline-offset-4" onClick={onCancel}>Abbrechen</button> : null}
+      </div>
+    </form>
+  )
+}
+
+/** Auswertung am Handy: erst zur Leinwand schauen, dann den eigenen Platz zeigen. */
+function MyResult({ me, profile }: { me: MyRank | null; profile: Profile | null }) {
+  const [shown, setShown] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setShown(true), 7500)
+    return () => clearTimeout(t)
+  }, [])
+  if (!shown) return <Message title="Schau auf die Leinwand!">Gleich siehst du, wer gewonnen hat.</Message>
+  if (!me) return <Message title="Auswertung">Du hast bei diesem Quiz nicht mitgespielt. Schau auf die Leinwand.</Message>
+  return <RankCard me={me} profile={profile} />
+}
+
+function RankCard({ me, profile }: { me: MyRank; profile: Profile | null }) {
+  const podium = me.rank <= 3
+  return (
+    <div className="wp-rise mb-10 flex flex-col items-center text-center" role="status">
+      <Avatar id={profile?.avatar} className={`h-28 w-28 ${podium ? 'ring-[6px] ring-amber rounded-full' : ''}`} />
+      {profile ? <p className="t-body mt-3 font-semibold text-white">{profile.name}</p> : null}
+      <p className="t-small mt-6 text-white/70">Dein Platz</p>
+      <p className={`font-[family-name:var(--font-brand)] text-[88px] font-semibold leading-none ${podium ? 'text-amber' : 'text-white'}`}>{me.rank}.</p>
+      <p className="t-body mt-2 text-white/75">von {me.players} {me.players === 1 ? 'Person' : 'Personen'}</p>
+      <p className="t-h3 mt-6 text-white">{me.points.toLocaleString('de-CH')} Punkte</p>
+      <p className="t-small mt-1 text-white/70">{me.correct} {me.correct === 1 ? 'richtige Antwort' : 'richtige Antworten'}</p>
+      {me.rank === 1 ? <p className="t-h3 mt-6 text-amber">Gewonnen!</p> : podium ? <p className="t-h3 mt-6 text-amber">Auf dem Podest!</p> : null}
+    </div>
   )
 }

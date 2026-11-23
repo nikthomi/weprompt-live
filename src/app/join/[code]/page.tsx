@@ -12,5 +12,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
   // Erster Zustand ohne Gerätekennung (die kennt nur der Browser); der Client meldet sich danach an.
   const { data } = await createAdminClient().rpc('live_join', { p_code: code, p_participant_id: null })
   if (!data) redirect('/?fehler=code')
-  return <Participant code={code} initial={data as JoinState} />
+  // Profil und Platz kennt erst der Client (Gerätekennung); bis dahin «unbekannt».
+  const { profile: _p, me: _m, ...initial } = data as JoinState // eslint-disable-line @typescript-eslint/no-unused-vars
+  return <Participant code={code} initial={initial} />
 }

@@ -14,7 +14,7 @@ import { createClient } from '@/lib/supabase/browser'
 import { throttle, useLiveChannel } from '@/lib/realtime'
 import { typeLabel, type OpenItem, type Question, type Session, type Snapshot, type WordResult } from '@/lib/types'
 
-type Patch = Partial<Pick<Session, 'status' | 'current_question_id' | 'voting_open' | 'results_visible' | 'show_qr'>> & { reveal?: boolean }
+type Patch = Partial<Pick<Session, 'status' | 'current_question_id' | 'voting_open' | 'results_visible' | 'show_qr'>> & { reveal?: boolean; leaderboard?: boolean }
 
 export function LiveControl({ session, questions, initial, joinUrl, joinLabel, presentUrl }: {
   session: Session
@@ -76,6 +76,9 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
   const qType = snap.question?.type
   const isQuiz = qType === 'quiz'
   const isBoard = qType === 'board'
+  const hasQuiz = questions.some(q => q.type === 'quiz')
+  const board = snap.leaderboard
+  const showPodium = useCallback(() => update({ leaderboard: true, show_qr: false }), [update])
 
   // Quiz: bei Zeitablauf automatisch auflösen.
   const left = useCountdown(isQuiz && !snap.reveal ? snap.deadline : null, snap.serverNow)
@@ -92,15 +95,18 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
     status: 'live', current_question_id: q.id, voting_open: true, results_visible: session.auto_show_results, show_qr: false,
   }), [update, session.auto_show_results])
 
+  // Nach der letzten Frage folgt bei Quiz-Sessions die Auswertung.
   const next = useCallback(() => {
     const q = questions[index + 1]
     if (q) activate(q)
-  }, [questions, index, activate])
+    else if (hasQuiz && !board && index >= 0) showPodium()
+  }, [questions, index, activate, hasQuiz, board, showPodium])
   const prev = useCallback(() => {
+    if (board) return update({ leaderboard: false })
     const q = questions[index - 1]
     if (q) activate(q)
     else if (index === 0) update({ current_question_id: null })
-  }, [questions, index, activate, update])
+  }, [questions, index, activate, update, board])
 
   // Tastatur: Pfeile = Fragen, O = Abstimmung, E = Ergebnisse, Q = QR-Code.
   useEffect(() => {
@@ -112,10 +118,11 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
       else if (snap.question && (e.key === 'o' || e.key === 'O')) update({ voting_open: !snap.votingOpen })
       else if (snap.question && (e.key === 'e' || e.key === 'E')) update(isQuiz ? { reveal: true } : { results_visible: !snap.resultsVisible })
       else if (e.key === 'q' || e.key === 'Q') update({ show_qr: !snap.showQr })
+      else if (hasQuiz && (e.key === 'a' || e.key === 'A')) update({ leaderboard: !board })
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [isLive, isQuiz, next, prev, update, snap.question, snap.votingOpen, snap.resultsVisible, snap.showQr])
+  }, [isLive, isQuiz, next, prev, update, snap.question, snap.votingOpen, snap.resultsVisible, snap.showQr, hasQuiz, board])
 
   return (
     <div className="flex flex-col gap-6">
@@ -185,18 +192,34 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
               )
             })}
           </ol>
+          {hasQuiz ? (
+            <button type="button" disabled={pending || !isLive} onClick={() => update({ leaderboard: !board })} aria-pressed={board}
+              className={`mt-1 flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left transition-colors disabled:opacity-50 ${board ? 'bg-amber' : 'hover:bg-mist'}`}>
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${board ? 'bg-black text-white' : 'bg-mist'}`} aria-hidden>
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M9 4h6v16H9zM2 11h6v9H2zM16 14h6v6h-6z" /></svg>
+              </span>
+              <span className="min-w-0">
+                <span className="block font-[family-name:var(--font-brand)] text-[16px] font-semibold">Auswertung</span>
+                <span className={`block text-[13px] ${board ? 'text-black/75' : 'text-gray'}`}>Siegerpodest mit Platz 1 bis 3</span>
+              </span>
+            </button>
+          ) : null}
         </nav>
 
         <div className="order-1 flex min-w-0 flex-col gap-4 xl:order-2">
           <div className="panel flex flex-col gap-5">
             <div className="flex flex-wrap items-center gap-3">
               <button type="button" className="wp-btn-quiet" disabled={pending || !isLive || index < 0} onClick={prev} aria-keyshortcuts="ArrowLeft">← Zurück</button>
-              {index < questions.length - 1 ? (
+              {index < questions.length - 1 && !board ? (
                 <button type="button" className="wp-btn wp-btn-primary" disabled={pending || !isLive} onClick={next} aria-keyshortcuts="ArrowRight">
                   {index < 0 ? 'Erste Frage' : 'Nächste Frage'} →
                 </button>
+              ) : hasQuiz && !board ? (
+                <button type="button" className="wp-btn wp-btn-primary" disabled={pending || !isLive} onClick={showPodium} aria-keyshortcuts="ArrowRight A">
+                  Auswertung zeigen →
+                </button>
               ) : (
-                <span className="t-small text-gray">Letzte Frage</span>
+                <span className="t-small text-gray">{board ? 'Auswertung läuft' : 'Letzte Frage'}</span>
               )}
             </div>
             <div className="flex flex-wrap gap-x-8 gap-y-3 border-t border-mist pt-5">
@@ -231,7 +254,7 @@ export function LiveControl({ session, questions, initial, joinUrl, joinLabel, p
               </div>
             ) : null}
             <p className="t-small text-gray">
-              Tastatur: ← → Fragen wechseln · O Abstimmung · {isQuiz ? 'E Auflösen' : 'E Ergebnisse'} · Q QR-Code
+              Tastatur: ← → Fragen wechseln · O Abstimmung · {isQuiz ? 'E Auflösen' : 'E Ergebnisse'} · Q QR-Code{hasQuiz ? ' · A Auswertung' : ''}
             </p>
           </div>
 

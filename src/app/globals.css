@@ -151,6 +151,14 @@ textarea.wp-input { resize: vertical; min-height: 90px; }
 @keyframes wp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 .wp-pulse { animation: wp-pulse 1.6s ease-in-out infinite; }
 
+/* Siegerpodest: Stufen wachsen von unten, Gewinner springen auf, Konfetti fällt einmal. */
+@keyframes wp-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.wp-grow { transform-origin: bottom; animation: wp-grow .9s cubic-bezier(.22,1,.36,1) both; }
+@keyframes wp-pop { 0% { opacity: 0; transform: translateY(3cqh) scale(.6); } 60% { opacity: 1; transform: translateY(-1cqh) scale(1.06); } 100% { opacity: 1; transform: none; } }
+.wp-pop { animation: wp-pop .7s cubic-bezier(.22,1,.36,1) both; }
+@keyframes wp-confetti { 0% { opacity: 0; transform: translateY(0) rotate(0); } 8% { opacity: 1; } 100% { opacity: 0; transform: translateY(105cqh) rotate(var(--turn, 360deg)); } }
+.wp-confetti { opacity: 0; animation: wp-confetti 3s cubic-bezier(.3,.6,.6,1) both; }
+
 /* Grosse Auswahlflächen auf dem Handy */
 .choice-tile {
   display: flex; align-items: center; gap: 14px; width: 100%; min-height: 58px; padding: 14px 20px;

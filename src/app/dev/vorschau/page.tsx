@@ -9,13 +9,17 @@ export default function Preview() {
   const now = serverTime()
   const base: Omit<Snapshot, 'question' | 'results'> = {
     sessionId: '00000000-0000-4000-8000-000000000000', code: 'K7M2QX', title: 'KI BASIC – Spiez', status: 'live',
-    votingOpen: true, resultsVisible: true, showQr: false, reveal: false, deadline: null, serverNow: 0, version: 1, participants: 23, responses: 21,
+    votingOpen: true, resultsVisible: true, showQr: false, reveal: false, leaderboard: false, hasQuiz: true, deadline: null, serverNow: 0, version: 1, participants: 23, responses: 21,
   }
   const q = (type: Snapshot['question'] extends infer T ? T extends { type: infer U } ? U : never : never, title: string, config = {}) =>
     ({ id: crypto.randomUUID(), type, title, description: null, config, number: 1, total: 4 })
+  const players: [string, string][] = [['Anna', 'fuchs'], ['Ben', 'eule'], ['Cleo', 'kuh'], ['David', 'roboter'], ['Elif', 'panda'], ['Fabio', 'loewe'], ['Gina', 'hase'], ['Hugo', 'baer'], ['Ines', 'pinguin'], ['Jonas', 'frosch'], ['Kim', 'koala'], ['Lena', 'katze'], ['Maximilian-Alexander', 'fuchs']]
   const words = ['Zukunft', 'ChatGPT', 'Effizienz', 'Neugier', 'Angst', 'Kreativität', 'Datenschutz', 'Automatisierung', 'Prompts', 'Chancen', 'Hilfe', 'Spannend', 'Unsicherheit', 'Werkzeug', 'Lernen', 'Copilot', 'Zeit sparen', 'Ethik']
   const snaps: { label: string; snap: Snapshot }[] = [
     { label: 'Warten / QR', snap: { ...base, question: null, results: null } },
+    { label: 'Warten mit Avataren', snap: { ...base, question: null, results: null, lobby: players.map(([name, avatar]) => ({ name, avatar })) } },
+    { label: 'Siegerpodest', snap: { ...base, leaderboard: true, question: null, results: null, ranking: { total: 6, players: 18, top: players.slice(0, 10).map(([name, avatar], i) => ({ rank: i === 4 ? 4 : i + 1, name, avatar, points: 5400 - i * 430 - (i === 4 ? -430 : 0), correct: 6 - Math.floor(i / 2) })) } } },
+    { label: 'Siegerpodest mit drei', snap: { ...base, leaderboard: true, question: null, results: null, ranking: { total: 3, players: 3, top: players.slice(0, 3).map(([name, avatar], i) => ({ rank: i + 1, name, avatar, points: 2800 - i * 600, correct: 3 - i })) } } },
     { label: 'Wortwolke', snap: { ...base, question: q('wordcloud', 'Welches Wort verbindest du mit künstlicher Intelligenz?', { maxWords: 3 }), results: { type: 'wordcloud', respondents: 21, words: words.map((w, i) => ({ key: w.toLowerCase(), text: w, count: Math.max(1, Math.round(14 / (i + 1))), hidden: false })) } } },
     { label: 'Multiple Choice', snap: { ...base, question: q('choice', 'Wie häufig nutzt du ChatGPT?', { options: [{ id: 'a', label: 'Täglich' }, { id: 'b', label: 'Mehrmals pro Woche' }, { id: 'c', label: 'Selten' }, { id: 'd', label: 'Nie' }] }), results: { type: 'choice', respondents: 21, counts: { a: 7, b: 9, c: 4, d: 1 } } } },
     { label: 'Mehrfachauswahl', snap: { ...base, question: q('choice', 'Wofür nutzt du KI heute schon?', { multiple: true, options: [{ id: 'a', label: 'Texte schreiben' }, { id: 'b', label: 'Recherche' }, { id: 'c', label: 'Übersetzen' }] }), results: { type: 'choice', respondents: 21, counts: { a: 15, b: 12, c: 6 } } } },

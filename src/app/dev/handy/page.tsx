@@ -3,7 +3,7 @@ import { Participant } from '@/app/join/[code]/Participant'
 import type { JoinState, PublicQuestion } from '@/lib/types'
 import { serverTime } from '../board-demo'
 
-/** Nur in der Entwicklung: Teilnehmer-Ansicht mit Beispieldaten, ?z=warten|choice|multi|yesno|scale|words|open|danke|zu|quiz|quiz-auf|board */
+/** Nur in der Entwicklung: Teilnehmer-Ansicht mit Beispieldaten, ?z=profil|platz|ende-platz|warten|choice|multi|yesno|scale|words|open|danke|zu|quiz|quiz-auf|board */
 export default async function Preview({ searchParams }: { searchParams: Promise<{ z?: string }> }) {
   if (process.env.NODE_ENV === 'production') notFound()
   const z = (await searchParams).z ?? 'choice'
@@ -26,7 +26,12 @@ export default async function Preview({ searchParams }: { searchParams: Promise<
     votingOpen: z !== 'zu', resultsVisible: true, showQr: false, answered: z === 'danke' || z === 'quiz-auf',
     reveal: z === 'quiz-auf', deadline: z === 'quiz' ? now + 15_000 : null, serverNow: now,
     myAnswer: z === 'quiz-auf' ? { options: ['no'] } : null,
-    question: z === 'warten' ? null : (questions[z] ?? questions.choice),
+    question: z === 'warten' || z === 'profil' ? null : (questions[z] ?? questions.choice),
+    hasQuiz: z.startsWith('quiz') || ['profil', 'platz', 'ende-platz'].includes(z),
+    leaderboard: z === 'platz',
+    profile: z === 'profil' ? null : { name: 'Anna', avatar: 'fuchs' },
+    me: z === 'platz' || z === 'ende-platz' ? { rank: 2, points: 3420, correct: 4, players: 18 } : null,
   }
+  if (z === 'ende-platz') state.status = 'ended'
   return <Participant code="DEVDEV" initial={state} />
 }
