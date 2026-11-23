@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Stage } from '@/components/Stage'
+import { WINNER_SOUND } from '@/components/PodiumSound'
 import { anonClient } from '@/lib/supabase/browser'
 import { throttle, useLiveChannel } from '@/lib/realtime'
 import type { PublicState, Snapshot } from '@/lib/types'
@@ -71,10 +72,12 @@ export function Presenter({ token, initial, joinUrl, joinLabel }: { token: strin
     // Ein Klick irgendwo auf den Fernseher genügt für den Vollbildmodus.
     <main className={`fixed inset-0 bg-violett ${chrome ? '' : 'cursor-none'}`}
       onClick={() => { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {}) }}>
-      <Stage snap={snap} joinUrl={joinUrl} joinLabel={joinLabel} />
+      <Stage snap={snap} joinUrl={joinUrl} joinLabel={joinLabel} sound />
+      {/* Melodie vorladen, damit sie beim Podest ohne Verzögerung startet. */}
+      {snap.hasQuiz ? <audio src={WINNER_SOUND} preload="auto" hidden /> : null}
       {!fullscreen ? (
         <p className={`t-small pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-black/35 px-4 py-1.5 text-white transition-opacity duration-500 ${chrome ? 'opacity-100' : 'opacity-0'}`}>
-          Einmal klicken für Vollbild
+          {snap.hasQuiz ? 'Einmal klicken für Vollbild und Ton' : 'Einmal klicken für Vollbild'}
         </p>
       ) : null}
       <div className={`absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-3 transition-opacity duration-300 ${chrome ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>

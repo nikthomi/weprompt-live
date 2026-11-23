@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { Avatar } from '@/components/Avatar'
+import { PodiumSound } from '@/components/PodiumSound'
 import type { Ranking } from '@/lib/types'
 
 /**
@@ -24,7 +25,7 @@ const CONFETTI = Array.from({ length: 36 }, (_, i) => ({
   turn: (i % 2 ? 1 : -1) * (240 + ((i * 29) % 300)),
 }))
 
-export function Podium({ ranking }: { ranking: Ranking | null | undefined }) {
+export function Podium({ ranking, sound = false }: { ranking: Ranking | null | undefined; sound?: boolean }) {
   // Zustand kommt vor den Zahlen an: bis dahin leer lassen, damit die Animation erst mit den Namen startet.
   if (!ranking) return null
   const top = ranking.top
@@ -41,6 +42,7 @@ export function Podium({ ranking }: { ranking: Ranking | null | undefined }) {
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
+      {sound ? <PodiumSound /> : null}
       <div className="pointer-events-none absolute inset-x-0 -top-[12cqh] bottom-0 overflow-hidden" aria-hidden>
         {CONFETTI.map((c, i) => (
           <span key={i} className="wp-confetti absolute top-0 block rounded-[2px]"

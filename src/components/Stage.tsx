@@ -13,7 +13,8 @@ import type { Snapshot } from '@/lib/types'
  * kleinen Vorschau gleich aussieht. Bewusst ruhig: weiss auf violett,
  * amber nur für das Ergebnis, Nebeninfos klein und zurückhaltend.
  */
-export function Stage({ snap, joinUrl, joinLabel }: { snap: Snapshot; joinUrl: string; joinLabel: string }) {
+/** sound: Siegermelodie beim Podest abspielen (nur das Beamer-Fenster, nicht die Admin-Vorschau). */
+export function Stage({ snap, joinUrl, joinLabel, sound = false }: { snap: Snapshot; joinUrl: string; joinLabel: string; sound?: boolean }) {
   const q = snap.question
   const ended = snap.status === 'ended' || snap.status === 'archived'
   const host = joinLabel.replace(/\/join\/.*$/, '')
@@ -37,7 +38,7 @@ export function Stage({ snap, joinUrl, joinLabel }: { snap: Snapshot; joinUrl: s
               <p className="stage-sub mt-[2cqh] text-white/70">{snap.title}</p>
             </Center>
           ) : snap.leaderboard ? (
-            <Podium ranking={snap.ranking} />
+            <Podium ranking={snap.ranking} sound={sound} />
           ) : !q || snap.showQr ? (
             <Welcome snap={snap} joinUrl={joinUrl} host={host} />
           ) : q.type === 'quiz' ? (
